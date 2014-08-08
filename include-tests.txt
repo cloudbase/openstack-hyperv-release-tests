@@ -1,0 +1,7 @@
+tempest.scenario.
+tempest.api.compute.
+tempest.api.network.
+tempest.api.volume.test_volumes_snapshots.
+tempest.api.volume.test_volumes_actions.
+tempest.api.volume.test_volumes_negative.
+
