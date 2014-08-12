@@ -135,3 +135,7 @@ function Remove-IniFileValue
         }
     }
 }
+
+Export-ModuleMember Get-IniFileValue
+Export-ModuleMember Set-IniFileValue
+Export-ModuleMember Remove-IniFileValue

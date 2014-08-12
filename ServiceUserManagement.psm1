@@ -390,4 +390,4 @@ function Set-ServiceLogonCredentials
     }
 }
 
-
+Export-ModuleMember Set-ServiceLogonCredentials
