@@ -1,0 +1,30 @@
+# Rescue (to be removed when the feature is added)
+tempest.api.compute.servers.test_server_rescue.ServerRescueTestJSON.
+tempest.api.compute.servers.test_server_rescue.ServerRescueTestXML.
+tempest.api.compute.servers.test_server_rescue_negative.ServerRescueNegativeTestJSON.
+tempest.api.compute.servers.test_server_rescue_negative.ServerRescueNegativeTestXML.
+tempest.api.compute.v3.servers.test_server_rescue.ServerRescueV3Test.
+tempest.api.compute.v3.servers.test_server_rescue_negative.ServerRescueNegativeV3Test.
+
+# Uptime (to be removed when the feature is added)
+tempest.api.compute.admin.test_hypervisor.HypervisorAdminTestJSON.test_get_hypervisor_uptime
+tempest.api.compute.admin.test_hypervisor.HypervisorAdminTestXML.test_get_hypervisor_uptime
+tempest.api.compute.admin.test_hypervisor_negative.HypervisorAdminNegativeTestJSON.test_get_hypervisor_uptime_with_non_admin_user
+tempest.api.compute.admin.test_hypervisor_negative.HypervisorAdminNegativeTestXML.test_get_hypervisor_uptime_with_non_admin_user
+tempest.api.compute.v3.admin.test_hypervisor.HypervisorAdminV3Test.test_get_hypervisor_uptime
+tempest.api.compute.v3.admin.test_hypervisor_negative.HypervisorAdminNegativeV3Test.test_get_hypervisor_uptime_with_non_admin_user
+
+# Console (to be removed when the feature is added)
+tempest.api.compute.test_authorization.AuthorizationTestJSON.test_get_console_output_of_alt_account_server_fails
+tempest.api.compute.test_authorization.AuthorizationTestXML.test_get_console_output_of_alt_account_server_fails
+tempest.api.compute.v3.servers.test_server_actions.ServerActionsV3Test.test_get_console_output
+tempest.api.compute.v3.servers.test_server_actions.ServerActionsV3Test.test_get_console_output_server_id_in_shutoff_status
+tempest.api.compute.v3.servers.test_servers_negative.ServersNegativeV3Test.test_get_console_output_of_non_existent_server
+
+# Hyper-V does not support attaching vNics to a running instance 
+tempest.api.compute.servers.test_attach_interfaces.AttachInterfacesTestJSON.test_create_list_show_delete_interfaces
+
+# Unsupported consoles
+tempest.api.compute.v3.servers.test_server_actions.ServerActionsV3Test.test_get_spice_console
+tempest.api.compute.v3.servers.test_server_actions.ServerActionsV3Test.test_get_vnc_console
+
