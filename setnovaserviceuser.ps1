@@ -1,4 +1,4 @@
-import-module .\ServiceUserManagement.ps1
+import-module .\ServiceUserManagement.psm1
 
 $username = "Administrator"
 $password = "Passw0rd" | ConvertTo-SecureString -asPlainText -Force
