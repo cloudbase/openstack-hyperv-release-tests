@@ -8,7 +8,7 @@ function run_test_retry(){
 
     while : ; do
         testr run --subunit $test | subunit-2to1 > $tmp_log_file 2>&1
-        exit_code=$?
+        exit_code=${PIPESTATUS[0]}
         ( [ $exit_code -eq 0 ] || [ $i -ge $retry_count ] ) && break
         $((i++))
         echo "Test $test failed. Retrying count: $i"
@@ -55,7 +55,6 @@ cur_test_idx_file=$(tempfile)
 echo 0 > $cur_test_idx_file
 
 lock_file_1=$(tempfile)
-
 tmp_log_file_base=$(tempfile)
 
 pids=()
@@ -68,13 +67,15 @@ for pid in ${pids[@]}; do
     wait $pid
 done
 
+rm $cur_test_idx_file
+
 > $log_file
 for i in $(seq 0 $((${#tests[@]}-1))); do
     tmp_log_file="$tmp_log_file_base"_"$i"
-    echo $tmp_log_file
     cat $tmp_log_file >> $log_file
     rm $tmp_log_file
 done
 
+rm $tmp_log_file_base
 rm $lock_file_1
 
