@@ -1,18 +1,25 @@
 #!/bin/bash
 
+# Make sure we kill the entire process tree when exiting
+trap "kill 0" SIGINT SIGTERM EXIT
+
 function run_test_retry(){
     local test=$1
     local tmp_log_file=$2
-    local retry_count=5
-    local i=0   
+    local i=0
+    local exit_code=0
 
     while : ; do
-        testr run --subunit $test | subunit-2to1 > $tmp_log_file 2>&1
-        exit_code=${PIPESTATUS[0]}
+        > $tmp_log_file
+        testr run --subunit $test > $tmp_log_file 2>&1
+        subunit-stats $tmp_log_file > /dev/null
+        exit_code=$?
+        ((i++))
         ( [ $exit_code -eq 0 ] || [ $i -ge $retry_count ] ) && break
-        $((i++))
         echo "Test $test failed. Retrying count: $i"
     done
+
+    echo $exit_code
 }
 
 function get_next_test_idx() {
@@ -37,9 +44,9 @@ function parallel_test_runner() {
 
         echo "Test runner $runner_id is starting test $((test_idx+1)) out of ${#tests[@]}: $test"
 
-        run_test_retry $test $tmp_log_file
-       
-        echo "Test runner $runner_id finished test $((test_idx+1)) out of ${#tests[@]}"
+        local test_exit_code=$(run_test_retry $test $tmp_log_file)
+        
+        echo "Test runner $runner_id finished test $((test_idx+1)) out of ${#tests[@]} with exit code: $test_exit_code"
     done
 }
 
@@ -48,6 +55,7 @@ tests_file=$1
 log_file=$2
 
 max_parallel_tests=5
+retry_count=5
 
 tests=(`awk '{print}' $tests_file`)
 
@@ -78,4 +86,7 @@ done
 
 rm $tmp_log_file_base
 rm $lock_file_1
+
+subunit-stats $log_file > /dev/null
+exit $?
 
