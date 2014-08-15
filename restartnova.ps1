@@ -2,7 +2,7 @@ net stop nova-compute
 net stop neutron-hyperv-agent
 net stop ceilometer-agent-compute
 
-stop-vm instance-* -Force -Passthru | Remove-Vm -Force
+stop-vm instance-* -Force -TurnOff -Passthru | Remove-Vm -Force
 rmdir C:\OpenStack\Instances -Recurse -Force
 del C:\OpenStack\Log\*
 
