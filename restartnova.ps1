@@ -3,7 +3,12 @@ net stop neutron-hyperv-agent
 net stop ceilometer-agent-compute
 
 stop-vm instance-* -Force -TurnOff -Passthru | Remove-Vm -Force
-rmdir C:\OpenStack\Instances -Recurse -Force
+
+$instancesDir = "C:\OpenStack\Instances"
+If  (Test-Path $instancesDir) {
+    rmdir $instancesDir -Recurse -Force
+}
+
 del C:\OpenStack\Log\*
 
 net start nova-compute
