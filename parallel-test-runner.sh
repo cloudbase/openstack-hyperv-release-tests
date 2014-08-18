@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Make sure we kill the entire process tree when exiting
-trap "kill 0" SIGINT SIGTERM EXIT
+trap 'kill 0' SIGINT SIGTERM
 
 function run_test_retry(){
     local tests_file=$1
@@ -15,7 +15,7 @@ function run_test_retry(){
         subunit-stats $tmp_log_file > /dev/null
         exit_code=$?
         ((i++))
-        ( [ $exit_code -eq 0 ] || [ $i -ge $retry_count ] ) && break
+        ( [ $exit_code -eq 0 ] || [ $i -ge $max_attempts ] ) && break
         echo "Test $tests_file failed. Retrying count: $i"
     done
 
@@ -28,14 +28,16 @@ function get_tests_range() {
         local test=${tests[$i]}
         local test_class=${test%.*}
         local j=$i
-        for test in ${tests[@]:$((i+1))}; do
-            local test_class_match=${test%.*}
-            if [ "$test_class" == "$test_class_match" ]; then
-                ((j++))
-            else
-                break
-            fi
-        done
+        if [ $run_isolated -eq 0 ]; then
+            for test in ${tests[@]:$((i+1))}; do
+                local test_class_match=${test%.*}
+                if [ "$test_class" == "$test_class_match" ]; then
+                    ((j++))
+                else
+                    break
+                fi
+            done
+        fi
 
         echo $i $j
     fi
@@ -83,16 +85,16 @@ function parallel_test_runner() {
         local test_exit_code=$(run_test_retry $tmp_tests_file $tmp_log_file)
         rm $tmp_tests_file
 
-        echo "Test runner $runner_id finished test from $((range_start+1)) to $((range_end+1)) out of ${#tests[@]} with exit code: $test_exit_code"
+        echo "Test runner $runner_id finished tests from $((range_start+1)) to $((range_end+1)) out of ${#tests[@]} with exit code: $test_exit_code"
     done
 }
 
 
 tests_file=$1
 log_file=$2
-
-max_parallel_tests=5
-retry_count=5
+max_parallel_tests=${3:-10}
+max_attempts=${4:-5}
+run_isolated=${5:-0}
 
 tests=(`awk '{print}' $tests_file`)
 
@@ -125,6 +127,8 @@ done
 
 rm $tmp_log_file_base
 rm $lock_file_1
+
+echo "Test execution completed in $SECONDS seconds."
 
 subunit-stats $log_file > /dev/null
 exit $?

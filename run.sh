@@ -1,6 +1,29 @@
 #!/bin/bash
-set -e
-./get-tests.sh > tests.txt
-time testr run --parallel --subunit --load-list=tests.txt | subunit-2to1 > subunit-output.log 2>&1
-python subunit2html.py subunit-output.log
+
+parallel_tests=${1:-8}
+max_attempts=${2:-5}
+log_file=i${3:-"subunit-output.log"}
+
+tests_file=$(tempfile)
+./get-tests.sh > $tests_file
+
+echo "Running tests from: $tests_file"
+
+./parallel-test-runner.sh $tests_file $log_file $parallel_tests $max_attempt
+
+log_tmp=$(tempfile)
+./parallel-test-runner.sh isolated-tests.txt $log_tmp $parallel_tests $max_attempt 1
+
+cat $log_tmp >> $log_file
+rm $log_tmp
+rm $tests_file
+
+echo "Generating HTML report..."
+./get-results-html.sh subunit-output.log
+
+subunit-stats $log_file > /dev/null
+exit_code=$?
+
+echo "Total execution time: $SECONDS seconds."
+exit $exit_code
 
