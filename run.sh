@@ -9,10 +9,10 @@ tests_file=$(tempfile)
 
 echo "Running tests from: $tests_file"
 
-./parallel-test-runner.sh $tests_file $log_file $parallel_tests $max_attempt
+./parallel-test-runner.sh $tests_file $log_file $parallel_tests $max_attempts
 
 log_tmp=$(tempfile)
-./parallel-test-runner.sh isolated-tests.txt $log_tmp $parallel_tests $max_attempt 1
+./parallel-test-runner.sh isolated-tests.txt $log_tmp $parallel_tests $max_attempts 1
 
 cat $log_tmp >> $log_file
 rm $log_tmp
