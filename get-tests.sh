@@ -11,13 +11,16 @@ array_to_regex()
         if [ "$regex" ]; then
             regex+="\\|"
         fi
-        regex+="^"$(echo $s | sed -e 's/\./\\\./g')
+        regex+="^"$(echo $s | sed -e 's/[]\/$*.^|[]/\\&/g')
     done
     echo $regex
 }
 
-include_tests=(`awk '{print}' include-tests.txt`)
-exclude_tests=(`awk '{print}' exclude-tests.txt`)
+include_tests=(`awk 'NF && $1!~/^#/' include-tests.txt`)
+exclude_tests=(`awk 'NF && $1!~/^#/' exclude-tests.txt`)
+isolated_tests=(`awk 'NF && $1!~/^#/' isolated-tests.txt`)
+
+exclude_tests=( ${exclude_tests[@]} ${isolated_tests[@]} )
 
 include_regex=$(array_to_regex ${include_tests[@]})
 exclude_regex=$(array_to_regex ${exclude_tests[@]})
