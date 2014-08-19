@@ -1,0 +1,2 @@
+Set-VMHost -VirtualMachineMigrationAuthenticationType Kerberos -UseAnyNetworkForMigration $true -VirtualMachineMigrationPerformanceOption Compression
+Enable-VMMigration

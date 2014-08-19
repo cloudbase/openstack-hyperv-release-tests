@@ -2,7 +2,7 @@
 
 parallel_tests=${1:-8}
 max_attempts=${2:-5}
-log_file=i${3:-"subunit-output.log"}
+log_file=${3:-"subunit-output.log"}
 
 tests_file=$(tempfile)
 ./get-tests.sh > $tests_file
