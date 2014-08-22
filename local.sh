@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+. ./functions-common
+
 export OS_USERNAME=admin
 export OS_PASSWORD=Passw0rd
 export OS_TENANT_NAME=admin
@@ -16,4 +18,14 @@ nova flavor-create m1.micro 84 128 2 1
 
 nova flavor-delete 451
 nova flavor-create m1.heat 451 512 5 1
+
+TEMPEST_CONFIG=/opt/stack/tempest/etc/tempest.conf
+
+iniset $TEMPEST_CONFIG compute-feature-enabled rdp_console true
+#iniset $TEMPEST_CONFIG compute-feature-enabled block_migrate_cinder_iscsi true
+
+#iniset $TEMPEST_CONFIG scenario img_dir "/home/cloudbase/images"
+iniset $TEMPEST_CONFIG scenario img_file cirros.vhd
+iniset $TEMPEST_CONFIG scenario img_disk_format vhd
+iniset $TEMPEST_CONFIG scenario attach_volume_dev_path "/dev/sdb"
 

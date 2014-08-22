@@ -2,7 +2,8 @@
 
 parallel_tests=${1:-8}
 max_attempts=${2:-5}
-log_file=i${3:-"subunit-output.log"}
+log_file=${3:-"subunit-output.log"}
+results_html_file=${4:-"results.html"}
 
 tests_file=$(tempfile)
 ./get-tests.sh > $tests_file
@@ -19,7 +20,7 @@ rm $log_tmp
 rm $tests_file
 
 echo "Generating HTML report..."
-./get-results-html.sh subunit-output.log
+./get-results-html.sh $log_file $results_html_file
 
 subunit-stats $log_file > /dev/null
 exit_code=$?

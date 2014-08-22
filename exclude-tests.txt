@@ -31,7 +31,10 @@ tempest.api.compute.v3.servers.test_server_actions.ServerActionsV3Test.test_get_
 tempest.api.compute.v3.servers.test_server_actions.ServerActionsV3Test.test_get_vnc_console
 
 # See Neutron bug https://bugs.launchpad.net/neutron/+bug/1277285
+# Note that corresponding JSON tests pass
 tempest.api.network.admin.test_dhcp_agent_scheduler.DHCPAgentSchedulersTestXML.test_add_remove_network_from_dhcp_agent
+tempest.api.network.admin.test_l3_agent_scheduler.L3AgentSchedulerTestXML.
+tempest.api.network.admin.test_agent_management.AgentManagementTestXML.
 
 # Waiting to be sorted ot (cbelu)
 tempest.scenario.test_security_groups_basic_ops.TestSecurityGroupsBasicOps.test_cross_tenant_traffic
