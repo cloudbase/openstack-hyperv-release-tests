@@ -1,12 +1,20 @@
 $ErrorActionPreference = "Stop"
 
+$svc = gwmi -Query "Select * From Win32_Service Where Name='MSiSCSI'"
+if ($svc.StartMode -ne 'Auto') {
+    $svc.ChangeStartMode('Automatic')
+}
+if (!$svc.Started) {
+    $svc.StartService()
+}
+
 $msi = "HyperVNovaCompute_Icehouse_2014_1_2.msi"
 
 Import-Module BitsTransfer
 Start-BitsTransfer "https://www.cloudbase.it/downloads/$msi"
 
 $devstackHost = "10.14.0.26"
-$password = "Pass0rd"
+$password = "Passw0rd"
 
 $msiArgs = "/i $msi /qn /l*v log.txt " + `
 
@@ -20,7 +28,7 @@ $msiArgs = "/i $msi /qn /l*v log.txt " + `
 "INSTANCESPATH=C:\OpenStack\Instances " +
 "LOGDIR=C:\OpenStack\Log " +
 
-"RDPCONSOLEURL=http://$devstackHost:8000 " +
+"RDPCONSOLEURL=http://${devstackHost}:8000 " +
 
 "ADDVSWITCH=0 " +
 "VSWITCHNAME=external " +
@@ -32,16 +40,16 @@ $msiArgs = "/i $msi /qn /l*v log.txt " + `
 "ENABLELOGGING=1 " + 
 "VERBOSELOGGING=1 " +
 
-"NEUTRONURL=http://$devstackHost:9696 " +
+"NEUTRONURL=http://${devstackHost}:9696 " +
 "NEUTRONADMINTENANTNAME=service " +
 "NEUTRONADMINUSERNAME=neutron " +
 "NEUTRONADMINPASSWORD=$password " +
-"NEUTRONADMINAUTHURL=http://$devstackHost:35357/v2.0 " +
+"NEUTRONADMINAUTHURL=http://${devstackHost}:35357/v2.0 " +
 
 "CEILOMETERADMINTENANTNAME=service " +
 "CEILOMETERADMINUSERNAME=ceilometer " +
 "CEILOMETERADMINPASSWORD=$password " +
-"CEILOMETERADMINAUTHURL=http://$devstackHost:35357/v2.0 "
+"CEILOMETERADMINAUTHURL=http://${devstackHost}:35357/v2.0 "
 
 $p = Start-Process -Wait "msiexec.exe" -ArgumentList $msiArgs -PassThru
 if($p.ExitCode) { throw "msiexec failed" }
