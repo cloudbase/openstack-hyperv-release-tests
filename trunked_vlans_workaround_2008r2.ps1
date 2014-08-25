@@ -1,8 +1,11 @@
 $ErrorActionPreference = "Stop"
 
-$ns = "root\virtualization"
+$switchName = "external"
+$vlanids = @()
+for ($i=500; $i -le 2000; $i++) { $vlanids += $i }
 
-$sw = gwmi -Namespace $ns -class "Msvm_virtualswitch" -Filter "ElementName = 'external'"
+$ns = "root\virtualization"
+$sw = gwmi -Namespace $ns -class "Msvm_virtualswitch" -Filter "ElementName = '$switchName'"
 $swports = gwmi -Namespace $ns -q "associators of {$sw} where ResultClass=Msvm_SwitchPort"
 foreach($swport in $swports) {
     $swleps = gwmi -Namespace $ns -q "associators of {$swport} where ResultClass=Msvm_SwitchLanEndPoint"
@@ -14,13 +17,10 @@ foreach($swport in $swports) {
                 if ($vlanep.DesiredEndpointMode -ne 5 ) {
                     $vlanep.DesiredEndpointMode = 5
                     $vlanep.Put()
-                }                
-                $vlanep= gwmi -Namespace $ns -q "associators of {$vlanep} where ResultClass=Msvm_VLANEndpointSettingData"                
-                $vlanep.TrunkedVLANList = @()
-                for ($i=500; $i -le 2000; $i++) { 
-                    $vlanep.TrunkedVLANList += $i
                 }
-                $vlanep.Put()                
+                $vlanep= gwmi -Namespace $ns -q "associators of {$vlanep} where ResultClass=Msvm_VLANEndpointSettingData"
+                $vlanep.TrunkedVLANList = $vlanids
+                $vlanep.Put()
             }
         }
     }
