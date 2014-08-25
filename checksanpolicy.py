@@ -20,12 +20,12 @@ from ctypes import wintypes
 
 CLSID_VdsLoader = '{9C38ED61-D565-4728-AEEE-C80952F0ECDE}'
 
-VDS_SP_UNKNOWN= 0
-VDS_SP_ONLINE	= 0x1
+VDS_SP_UNKNOWN = 0
+VDS_SP_ONLINE = 0x1
 VDS_SP_OFFLINE_SHARED = 0x2
 VDS_SP_OFFLINE = 0x3
-VDS_SP_OFFLINE_INTERNAL	= 0x4
-VDS_SP_MAX	= 0x5
+VDS_SP_OFFLINE_INTERNAL = 0x4
+VDS_SP_MAX = 0x5
 
 
 class IEnumVdsObject(comtypes.IUnknown):
@@ -47,9 +47,10 @@ class IVdsServiceSAN(comtypes.IUnknown):
 
     _methods_ = [
         comtypes.COMMETHOD([], comtypes.HRESULT, 'GetSANPolicy',
-            (['out'], ctypes.POINTER(ctypes.c_uint), 'pSanPolicy')),
+                           (['out'], ctypes.POINTER(ctypes.c_uint),
+                            'pSanPolicy')),
         comtypes.COMMETHOD([], comtypes.HRESULT, 'SetSANPolicy',
-            (['in'], ctypes.c_uint, 'SanPolicy')),
+                           (['in'], ctypes.c_uint, 'SanPolicy')),
     ]
 
 
@@ -92,7 +93,7 @@ def check_san_offline_policy():
     print "Current SAN policy: %s" % curr_policy
 
     if curr_policy not in [VDS_SP_OFFLINE, VDS_SP_OFFLINE_SHARED]:
-        print "Setting  SAN policy: VDS_SP_OFFLINE"
+        print "Setting SAN policy: VDS_SP_OFFLINE"
         svc_san.SetSANPolicy(VDS_SP_OFFLINE)
         return True
 
