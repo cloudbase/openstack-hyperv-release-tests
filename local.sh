@@ -23,7 +23,7 @@ TEMPEST_CONFIG=/opt/stack/tempest/etc/tempest.conf
 
 iniset $TEMPEST_CONFIG compute volume_device_name "sdb"
 iniset $TEMPEST_CONFIG compute-feature-enabled rdp_console true
-#iniset $TEMPEST_CONFIG compute-feature-enabled block_migrate_cinder_iscsi true
+iniset $TEMPEST_CONFIG compute-feature-enabled block_migrate_cinder_iscsi true
 
 #iniset $TEMPEST_CONFIG scenario img_dir "/home/cloudbase/images"
 iniset $TEMPEST_CONFIG scenario img_file cirros.vhd
