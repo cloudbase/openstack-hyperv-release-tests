@@ -18,14 +18,21 @@ if(Test-Path $msi) {
 $devstackHost = "10.14.0.26"
 $password = "Passw0rd"
 
+if($ENV:USERDOMAIN -ne $(hostname)) {
+    isDomain = $true
+}
+
 $features = @(
 "HyperVNovaCompute",
 "NeutronHyperVAgent",
 "CeilometerComputeAgent",
 "iSCSISWInitiator",
-"FreeRDP",
-"LiveMigration"
+"FreeRDP"
 )
+
+if($isDomain) {
+    $features += "LiveMigration"
+}
 
 $msiArgs = "/i $msi /qn /l*v log.txt " + `
 
@@ -62,7 +69,7 @@ $msiArgs = "/i $msi /qn /l*v log.txt " + `
 "CEILOMETERADMINPASSWORD=$password " +
 "CEILOMETERADMINAUTHURL=http://${devstackHost}:35357/v2.0 "
 
-if ($features -ccontains "LiveMigration") {
+if ($isDomain -and $features -ccontains "LiveMigration") {
     $msiArgs += "LIVEMIGRAUTHTYPE=1 " +
         "MAXACTIVEVSMIGR=8 " +
         "MAXACTIVESTORAGEMIGR=8 " +
@@ -70,7 +77,7 @@ if ($features -ccontains "LiveMigration") {
         "NOVACOMPUTESERVICEUSER=TEMPEST\Administrator "
 }
 else {
-    $msiArgs += "NOVACOMPUTESERVICEUSER=Administrator "
+    $msiArgs += "NOVACOMPUTESERVICEUSER=$(hostname)\Administrator "
 }
 
 $msiArgs += "NOVACOMPUTESERVICEPASSWORD=Passw0rd "
