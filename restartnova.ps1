@@ -1,8 +1,32 @@
-net stop nova-compute
-net stop neutron-hyperv-agent
-net stop ceilometer-agent-compute
+function Is2012OrAbove() {
+    $v = [environment]::OSVersion.Version
+    return ($v.Major -ge 6 -and $v.Minor -ge 2)
+}
 
-stop-vm instance-* -Force -TurnOff -Passthru | Remove-Vm -Force
+function CheckStopService($serviceName) {
+    $s = get-service | where {$_.Name -eq $serviceName}
+    if($s -and $s.Status -ne "Stopped") { net stop $serviceName }
+}
+
+function CheckStartService($serviceName) {
+    $s = get-service | where {$_.Name -eq $serviceName}
+    if($s -and $s.Status -eq "Stopped") { net start $serviceName }
+}
+
+CheckStopService nova-compute
+CheckStopService neutron-hyperv-agent
+CheckStopService ceilometer-agent-compute
+
+if(Is2012OrAbove) {
+    Get-VM instance-* | where {$_.State -eq "Running"} | Stop-VM  -Force -TurnOff
+    Get-VM instance-* | Remove-VM -Force
+}
+else {
+    Import-Module "$ENV:ProgramFiles\modules\HyperV\HyperV.psd1"
+    Get-VM instance-* | where {$_.EnabledState -eq 2}  | Stop-VM -Wait -Force
+    Get-VM instance-* | Remove-VM -Force -Wait
+    Remove-Module HyperV
+}
 
 $instancesDir = "C:\OpenStack\Instances"
 If  (Test-Path $instancesDir) {
@@ -11,6 +35,6 @@ If  (Test-Path $instancesDir) {
 
 del C:\OpenStack\Log\*
 
-net start nova-compute
-net start neutron-hyperv-agent
-net start ceilometer-agent-compute
+CheckStartService nova-compute
+CheckStartService neutron-hyperv-agent
+CheckStartService ceilometer-agent-compute
