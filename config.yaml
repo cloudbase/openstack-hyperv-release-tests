@@ -1,0 +1,33 @@
+HyperV2012r2_1:
+  devstack:
+    live_migration: true
+    allow_resize_to_same_host: false
+    image: cirros.vhdx
+  hosts:
+    NUCHV12R201:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: false
+          debug: true
+    NUCHV12R202:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: false
+          debug: true
+HyperV2012r2_2:
+  devstack:
+    live_migration: true
+    allow_resize_to_same_host: false
+    image: cirros.vhd
+  hosts:
+    NUCHV12R201:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: false
+          debug: true
+    NUCHV12R202:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: false
+          debug: true
+
