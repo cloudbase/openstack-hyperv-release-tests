@@ -155,10 +155,20 @@ function check_nova_service_up() {
     nova service-list | awk '{if ($6 == host_name && $4 == service_name && $12 == "up" && $10 == "enabled") {f=1}} END {exit !f}' host_name=$host_name service_name=$service_name
 }
 
+function get_nova_service_hosts() {
+    local service_name=${1-"nova-compute"}
+    nova service-list | awk '{if ($4 == service_name && $12 == "up" && $10 == "enabled") {print $6}}' service_name=$service_name
+}
+
 function check_neutron_agent_up() {
     local host_name=$1
     local agent_type=${2:-"HyperV agent"}
     neutron agent-list |  awk 'BEGIN { FS = "[ ]*\\|[ ]+" }; {if (NR > 3 && $4 == host_name && $3 == agent_type && $5 == ":-)"){f=1}} END {exit !f}' host_name=$host_name agent_type="$agent_type"
+}
+
+function get_neutron_agent_hosts() {
+    local agent_type=${1:-"HyperV agent"}
+    neutron agent-list |  awk 'BEGIN { FS = "[ ]*\\|[ ]+" }; {if (NR > 3 && $3 == agent_type && $5 == ":-)"){ print $4 }}' agent_type="$agent_type"
 }
 
 function stack_devstack() {
@@ -190,8 +200,36 @@ function exec_with_retry () {
     return $exit_code
 }
 
+function get_devstack_ip_addr() {
+    python -c "import socket;
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM);
+s.connect(('8.8.8.8', 80));
+(addr, port) = s.getsockname();
+s.close();
+print addr"
+}
+
+function check_host_services_count() {
+    local expected_hosts_count=$1
+
+    local nova_compute_hosts=`get_nova_service_hosts | wc -l`
+    if [ $expected_hosts_count -ne $nova_compute_hosts ]; then
+        echo "Current active nova-compute services:  $nova_compute_hosts expected: ${#host_names[@]}"
+        return 1
+    fi
+
+    local hyperv_agent_hosts=`get_neutron_agent_hosts | wc -l`
+    if [ $expected_hosts_count -ne $hyperv_agent_hosts ]; then
+        echo "Current active neutron Hyper-V agents:  $hyperv_agent_hosts expected: ${#host_names[@]}"
+        return 1
+    fi
+}
+
 DEVSTACK_BRANCH="stable/icehouse"
 export DEVSTACK_BRANCH
+
+DEVSTACK_IP_ADDR=`get_devstack_ip_addr`
+export DEVSTACK_IP_ADDR
 
 repo_dir="C:\\Dev\\devstack-hyperv-incubator"
 host_config_dir="\${ENV:ProgramFiles(x86)}\\Cloudbase Solutions\\OpenStack\\Nova\\etc"
@@ -225,16 +263,16 @@ do
     export DEVSTACK_IMAGE_FILE="${devstack_config[image]}"
     export DEVSTACK_IMAGES_DIR=$images_dir
 
-    stack_devstack
+    #stack_devstack
 
     host_names=(`get_config_test_hosts $test_name`)
     for host_name in ${host_names[@]};
     do
         echo "Configuring host: $host_name"
 
-        setup_win_host $host_name
-        uninstall_compute $host_name
-        install_compute $host_name
+        exec_with_retry 5 10 setup_win_host $host_name
+        exec_with_retry 5 10 uninstall_compute $host_name
+        exec_with_retry 5 10 install_compute $host_name
 
         host_config_files=(`get_config_test_host_config_files $test_name $host_name`)
         for host_config_file in ${host_config_files[@]};
@@ -251,7 +289,7 @@ do
             done
         done
 
-        restart_compute_services $host_name
+        exec_with_retry 5 10 restart_compute_services $host_name
 
         echo "Checking if nova-compute is active on: $host_name"
         exec_with_retry 15 2 check_nova_service_up $host_name
@@ -259,11 +297,13 @@ do
         exec_with_retry 15 2 check_neutron_agent_up $host_name
     done
 
-    $BASEDIR/runtests.sh
+    exec_with_retry 30 2 check_host_services_count ${#host_names[@]}
+
+    #$BASEDIR/runtests.sh
 
     for host_name in ${host_names[@]};
     do
-        uninstall_compute $host_name
+        exec_with_retry 5 10 uninstall_compute $host_name
     done
 done
 
