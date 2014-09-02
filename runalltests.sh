@@ -6,7 +6,6 @@ BASEDIR=$(dirname $0)
 function run_wsman_cmd() {
     local host=$1
     local cmd=$2
-    echo $cmd
     $BASEDIR/wsmancmd.py -u Administrator -p Passw0rd -U https://$1:5986/wsman $cmd
 }
 
@@ -18,6 +17,7 @@ function run_wsman_ps() {
 
 function setup_win_host() {
     local win_host=$1
+    echo "Setting up host: $win_host"
 
     cmd="if(!(Test-Path (Join-Path $repo_dir .git))) {
         if(!(Test-Path $repo_dir)) {
@@ -34,16 +34,19 @@ function setup_win_host() {
 
 function uninstall_compute() {
     local win_host=$1
+    echo "Uninstalling OpenStack services on: $win_host"
     run_wsman_ps $win_host "cd $repo_dir; .\\uninstallnova.ps1"
 }
 
 function install_compute() {
     local win_host=$1
+    echo "Installing OpenStack services on: $win_host"
     run_wsman_ps $win_host "cd $repo_dir; .\\installnova.ps1"
 }
 
 function restart_compute_services() {
     local win_host=$1
+    echo "Restarting OpenStack services on: $win_host"
     run_wsman_ps $win_host "cd $repo_dir; .\\restartnova.ps1"
 }
 
@@ -78,7 +81,7 @@ function clone_pull_repo() {
     else
         git clone $repo_url
         cd $repo_dir
-        if [ "$devstack_branch" != "master" ]; then
+        if [ "$repo_branch" != "master" ]; then
             git checkout -b $repo_branch origin/$repo_branch
         fi
     fi
@@ -146,6 +149,18 @@ print ' '.join(['[%(k)s]=%(v)s' % {'k': k, 'v': v} for (k,v) in
                config[\"$test_name\"]['hosts'][\"$host_name\"][\"$host_config_file\"][\"$section_name\"].items()])"
 }
 
+function check_nova_service_up() {
+    local host_name=$1
+    local service_name=${2-"nova-compute"}
+    nova service-list | awk '{if ($6 == host_name && $4 == service_name && $12 == "up" && $10 == "enabled") {f=1}} END {exit !f}' host_name=$host_name service_name=$service_name
+}
+
+function check_neutron_agent_up() {
+    local host_name=$1
+    local agent_type=${2:-"HyperV agent"}
+    neutron agent-list |  awk 'BEGIN { FS = "[ ]*\\|[ ]+" }; {if (NR > 3 && $4 == host_name && $3 == agent_type && $5 == ":-)"){f=1}} END {exit !f}' host_name=$host_name agent_type="$agent_type"
+}
+
 function stack_devstack() {
     push_dir
     cd $devstack_dir
@@ -154,7 +169,30 @@ function stack_devstack() {
     pop_dir
 }
 
-devstack_branch="stable/icehouse"
+function exec_with_retry () {
+    local max_retries=$1
+    local interval=${2}
+    local cmd=${@:3}
+
+    local counter=0
+    while [ $counter -lt $max_retries ]; do
+        local exit_code=0
+        eval $cmd || exit_code=$?
+        if [ $exit_code -eq 0 ]; then
+            return 0
+        fi
+        let counter=counter+1
+
+        if [ -n "$interval" ]; then
+            sleep $interval
+        fi
+    done
+    return $exit_code
+}
+
+DEVSTACK_BRANCH="stable/icehouse"
+export DEVSTACK_BRANCH
+
 repo_dir="C:\\Dev\\devstack-hyperv-incubator"
 host_config_dir="\${ENV:ProgramFiles(x86)}\\Cloudbase Solutions\\OpenStack\\Nova\\etc"
 devstack_dir="$HOME/devstack"
@@ -163,7 +201,7 @@ config_file="config.yaml"
 vhd_image_url="https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros.vhd"
 vhdx_image_url="https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros.vhdx"
 
-clone_pull_repo $devstack_dir "https://github.com/openstack-dev/devstack.git" $devstack_branch
+clone_pull_repo $devstack_dir "https://github.com/openstack-dev/devstack.git" $DEVSTACK_BRANCH
 cp local.conf $devstack_dir
 cp local.sh $devstack_dir
 
@@ -173,6 +211,8 @@ check_get_image $vhdx_image_url "$images_dir/cirros.vhdx"
 test_names=(`get_config_tests`)
 for test_name in ${test_names[@]};
 do
+    echo "Current test: $test_name"
+
     unset DEVSTACK_LIVE_MIGRATION
     unset DEVSTACK_SAME_HOST_RESIZE
     unset DEVSTACK_IMAGE_FILE
@@ -190,6 +230,8 @@ do
     host_names=(`get_config_test_hosts $test_name`)
     for host_name in ${host_names[@]};
     do
+        echo "Configuring host: $host_name"
+
         setup_win_host $host_name
         uninstall_compute $host_name
         install_compute $host_name
@@ -210,6 +252,11 @@ do
         done
 
         restart_compute_services $host_name
+
+        echo "Checking if nova-compute is active on: $host_name"
+        exec_with_retry 15 2 check_nova_service_up $host_name
+        echo "Checking if neutron Hyper-V agent is active on: $host_name"
+        exec_with_retry 15 2 check_neutron_agent_up $host_name
     done
 
     $BASEDIR/runtests.sh
