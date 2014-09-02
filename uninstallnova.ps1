@@ -15,3 +15,7 @@ $appPath = "${ENV:ProgramFiles(x86)}\Cloudbase Solutions\OpenStack\Nova"
 if(Test-Path $appPath) {
     rmdir -Recurse -Force $appPath
 }
+
+# Remove common js files used by the installer
+# This needs to be added to the installer
+del $env:SystemRoot\Temp\*.js -Force
