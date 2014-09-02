@@ -99,6 +99,8 @@ RemoveExistingWinRMHttpsListener
 New-Item -Path wsman:\localhost\listener -transport https -address * -CertificateThumbPrint $certThumbprint -Force
 
 Set-Item wsman:\localhost\service\Auth\Basic -Value $true
+# Increase the timeout for long running scripts
+Set-Item wsman:\localhost\MaxTimeoutms -Value 1800000
 
 CreateWinRMHttpsFirewallRule
 
