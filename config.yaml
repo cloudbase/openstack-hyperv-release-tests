@@ -1,4 +1,4 @@
-HyperV2012r2_1:
+HyperV2012r2_VHDX:
   devstack:
     live_migration: true
     allow_resize_to_same_host: false
@@ -14,7 +14,7 @@ HyperV2012r2_1:
         DEFAULT:
           allow_resize_to_same_host: false
           debug: true
-HyperV2012r2_2:
+HyperV2012r2_VHD:
   devstack:
     live_migration: true
     allow_resize_to_same_host: false
@@ -29,5 +29,61 @@ HyperV2012r2_2:
       nova.conf:
         DEFAULT:
           allow_resize_to_same_host: false
+          debug: true
+HyperV2012r2_dynamic_memory:
+  devstack:
+    live_migration: true
+    allow_resize_to_same_host: false
+    image: cirros.vhdx
+  hosts:
+    NUCHV12R201:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: false
+          debug: true
+        hyperv:
+          dynamic_memory_ratio: 1.5
+    NUCHV12R202:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: false
+          debug: true
+        hyperv:
+          dynamic_memory_ratio: 1.5
+HyperV2012_VHDX:
+  devstack:
+    live_migration: false
+    allow_resize_to_same_host: true
+    image: cirros.vhdx
+  hosts:
+    NUCHV1201:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: true
+          debug: true
+HyperV2012_VHD_v1:
+  devstack:
+    live_migration: false
+    allow_resize_to_same_host: true
+    image: cirros.vhd
+  hosts:
+    NUCHV1201:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: true
+          debug: true
+        hyperv:
+          force_hyperv_utils_v1: true
+          force_volumeutils_v1: true
+HyperV2008r2:
+  devstack:
+    live_migration: false
+    allow_resize_to_same_host: true
+    image: cirros.vhd
+  hosts:
+    NUCHV08R201:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: true
           debug: true
 
