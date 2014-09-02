@@ -9,6 +9,9 @@ function run_test_retry(){
     local i=0
     local exit_code=0
 
+    pushd . > /dev/null
+    cd $tempest_dir
+
     while : ; do
         > $tmp_log_file
         testr run --subunit --load-list=$tests_file > $tmp_log_file 2>&1
@@ -18,6 +21,8 @@ function run_test_retry(){
         ( [ $exit_code -eq 0 ] || [ $i -ge $max_attempts ] ) && break
         echo "Test $tests_file failed. Retrying count: $i"
     done
+
+    popd > /dev/null
 
     echo $exit_code
 }
@@ -95,6 +100,7 @@ log_file=$2
 max_parallel_tests=${3:-10}
 max_attempts=${4:-5}
 run_isolated=${5:-0}
+tempest_dir=${6:-"/opt/stack/tempest"}
 
 tests=(`awk '{print}' $tests_file`)
 

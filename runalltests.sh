@@ -211,5 +211,7 @@ do
 
         restart_compute_services $host_name
     done
+
+    $BASEDIR/runtests.sh
 done
 
