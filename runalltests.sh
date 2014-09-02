@@ -213,5 +213,10 @@ do
     done
 
     $BASEDIR/runtests.sh
+
+    for host_name in ${host_names[@]};
+    do
+        uninstall_compute $host_name
+    done
 done
 
