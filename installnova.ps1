@@ -1,4 +1,5 @@
 $ErrorActionPreference = "Stop"
+[Environment]::CurrentDirectory = $pwd
 
 $svc = gwmi -Query "Select * From Win32_Service Where Name='MSiSCSI'"
 if ($svc.StartMode -ne 'Auto') {
@@ -9,9 +10,10 @@ if (!$svc.Started) {
 }
 
 $msi = "HyperVNovaCompute_Icehouse_2014_1_2.msi"
-
-Import-Module BitsTransfer
-Start-BitsTransfer "https://www.cloudbase.it/downloads/$msi"
+if(Test-Path $msi) {
+    del $msi
+}
+(New-Object System.Net.WebClient).DownloadFile("https://www.cloudbase.it/downloads/$msi", $msi)
 
 $devstackHost = "10.14.0.26"
 $password = "Passw0rd"
@@ -73,5 +75,9 @@ else {
 
 $msiArgs += "NOVACOMPUTESERVICEPASSWORD=Passw0rd "
 
+Write-Host "Installing ""$msi"""
+
 $p = Start-Process -Wait "msiexec.exe" -ArgumentList $msiArgs -PassThru
 if($p.ExitCode) { throw "msiexec failed" }
+
+Write-Host """$msi"" installed successfully"
