@@ -18,7 +18,8 @@ CheckStopService neutron-hyperv-agent
 CheckStopService ceilometer-agent-compute
 
 if(Is2012OrAbove) {
-    stop-vm instance-* -Force -TurnOff -Passthru | Remove-Vm -Force
+    Get-VM instance-* | where {$_.State -eq "Running"} | Stop-VM  -Force -TurnOff
+    Get-VM instance-* | Remove-VM -Force
 }
 else {
     Import-Module "$ENV:ProgramFiles\modules\HyperV\HyperV.psd1"
