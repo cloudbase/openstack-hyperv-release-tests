@@ -2,9 +2,15 @@ $ErrorActionPreference = "Stop"
 
 $products = gwmi Win32_Product -filter "Vendor = 'Cloudbase Solutions Srl'" | where {$_.Caption.StartsWith('OpenStack Hyper-V Nova Compute')}
 if ($products) {
+    $msi_log_path="C:\OpenStack\Log\uninstall_log.txt"
+    $log_dir = split-path $msi_log_path
+    if(!(Test-Path $log_dir)) {
+        mkdir $log_dir
+    }
+
     foreach($product in $products) {
         Write-Host "Uninstalling ""$($product.Caption)"""
-        $p = Start-Process -Wait "msiexec.exe" -ArgumentList "/uninstall $($product.IdentifyingNumber) /qn /l*v log_uninstall.txt" -PassThru
+        $p = Start-Process -Wait "msiexec.exe" -ArgumentList "/uninstall $($product.IdentifyingNumber) /qn /l*v $msi_log_path" -PassThru
         if($p.ExitCode) { throw 'Uninstalling "$($product.Caption)" failed'}
         Write-Host """$($product.Caption)"" uninstalled successfully"
     }
