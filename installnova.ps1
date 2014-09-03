@@ -33,7 +33,13 @@ if($domainName) {
     $features += "LiveMigration"
 }
 
-$msiArgs = "/i $msi /qn /l*v log.txt " + `
+$msi_log_path="C:\OpenStack\Log\install_log.txt"
+$log_dir = split-path $msi_log_path
+if(!(Test-Path $log_dir)) {
+    mkdir $log_dir
+}
+
+$msiArgs = "/i $msi /qn /l*v $msi_log_path " + `
 
 "ADDLOCAL=" + ($features -join ",") + " " +
 

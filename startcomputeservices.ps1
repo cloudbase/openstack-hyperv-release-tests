@@ -3,19 +3,10 @@ function Is2012OrAbove() {
     return ($v.Major -ge 6 -and $v.Minor -ge 2)
 }
 
-function CheckStopService($serviceName) {
-    $s = get-service | where {$_.Name -eq $serviceName}
-    if($s -and $s.Status -ne "Stopped") { net stop $serviceName }
-}
-
 function CheckStartService($serviceName) {
     $s = get-service | where {$_.Name -eq $serviceName}
     if($s -and $s.Status -eq "Stopped") { net start $serviceName }
 }
-
-CheckStopService nova-compute
-CheckStopService neutron-hyperv-agent
-CheckStopService ceilometer-agent-compute
 
 if(Is2012OrAbove) {
     Get-VM instance-* | where {$_.State -eq "Running"} | Stop-VM  -Force -TurnOff
@@ -33,7 +24,13 @@ If  (Test-Path $instancesDir) {
     rmdir $instancesDir -Recurse -Force
 }
 
-del C:\OpenStack\Log\*
+$log_files = @("nova-compute.log", "neutron-hyperv-agent.log", "ceilometer-agent-compute.log")
+foreach($log_file in $log_files) {
+    $log_path = Join-Path "C:\OpenStack\Log\" $log_file
+    if(Test-Path $log_path) {
+        del -Force $log_path
+    }
+}
 
 CheckStartService nova-compute
 CheckStartService neutron-hyperv-agent
