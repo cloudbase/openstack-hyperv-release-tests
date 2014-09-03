@@ -3,19 +3,10 @@ function Is2012OrAbove() {
     return ($v.Major -ge 6 -and $v.Minor -ge 2)
 }
 
-function CheckStopService($serviceName) {
-    $s = get-service | where {$_.Name -eq $serviceName}
-    if($s -and $s.Status -ne "Stopped") { net stop $serviceName }
-}
-
 function CheckStartService($serviceName) {
     $s = get-service | where {$_.Name -eq $serviceName}
     if($s -and $s.Status -eq "Stopped") { net start $serviceName }
 }
-
-CheckStopService nova-compute
-CheckStopService neutron-hyperv-agent
-CheckStopService ceilometer-agent-compute
 
 if(Is2012OrAbove) {
     Get-VM instance-* | where {$_.State -eq "Running"} | Stop-VM  -Force -TurnOff
