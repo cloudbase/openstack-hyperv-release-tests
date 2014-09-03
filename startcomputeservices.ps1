@@ -24,7 +24,13 @@ If  (Test-Path $instancesDir) {
     rmdir $instancesDir -Recurse -Force
 }
 
-del C:\OpenStack\Log\*
+$log_files = @("nova-compute.log", "neutron-hyperv-agent.log", "ceilometer-agent-compute.log")
+foreach($log_file in $log_files) {
+    $log_path = Join-Path "C:\OpenStack\Log\" $log_file
+    if(Test-Path $log_path) {
+        del -Force $log_path
+    }
+}
 
 CheckStartService nova-compute
 CheckStartService neutron-hyperv-agent
