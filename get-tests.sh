@@ -25,5 +25,6 @@ exclude_tests=( ${exclude_tests[@]} ${isolated_tests[@]} )
 include_regex=$(array_to_regex ${include_tests[@]})
 exclude_regex=$(array_to_regex ${exclude_tests[@]})
 
+cd /opt/stack/tempest
 testr list-tests | grep $include_regex | grep -v $exclude_regex 
 

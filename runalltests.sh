@@ -6,7 +6,14 @@ BASEDIR=$(dirname $0)
 function run_wsman_cmd() {
     local host=$1
     local cmd=$2
-    $BASEDIR/wsmancmd.py -u Administrator -p Passw0rd -U https://$1:5986/wsman $cmd
+    $BASEDIR/wsmancmd.py -u $win_user -p $win_password -U https://$1:5986/wsman $cmd
+}
+
+function get_win_files() {
+    local host=$1
+    local remote_dir=$2
+    local local_dir=$3
+    smbclient "//$host/C\$" -c "lcd $local_dir; cd $remote_dir; prompt; mget *" -U "$win_user%$win_password"
 }
 
 function run_wsman_ps() {
@@ -47,7 +54,13 @@ function install_compute() {
 function restart_compute_services() {
     local win_host=$1
     echo "Restarting OpenStack services on: $win_host"
-    run_wsman_ps $win_host "cd $repo_dir; .\\restartnova.ps1"
+    run_wsman_ps $win_host "cd $repo_dir; .\\restartcomputeservices.ps1"
+}
+
+function stop_compute_services() {
+    local win_host=$1
+    echo "Stopping OpenStack services on: $win_host"
+    run_wsman_ps $win_host "cd $repo_dir; .\\stopcomputeservices.ps1"
 }
 
 function set_win_config_file_entry() {
@@ -57,7 +70,22 @@ function set_win_config_file_entry() {
     local entry_name=$4
     local entry_value=$5
     run_wsman_ps $win_host "cd $repo_dir; Import-Module .\ini.psm1; Set-IniFileValue -Path \\\"$host_config_file_path\\\" -Section $config_section -Key $entry_name -Value $entry_value"
+}
 
+function get_win_host_log_files() {
+    local host_name=$1
+    local local_dir=$2
+    mkdir -p $local_dir
+    get_win_files $host_name "$host_logs_dir" $local_dir
+}
+
+function get_win_host_config_files() {
+    local host_name=$1
+    local local_dir=$2
+    mkdir -p $local_dir
+
+    local host_config_dir_esc=`run_wsman_ps $host_name "cd $repo_dir; Import-Module .\ShortPath.psm1; Get-ShortPathName \\\\\"$host_config_dir\\\\\"" 2>&1`
+    get_win_files $host_name "${host_config_dir_esc#*:}" $local_dir
 }
 
 function push_dir() {
@@ -232,12 +260,19 @@ DEVSTACK_IP_ADDR=`get_devstack_ip_addr`
 export DEVSTACK_IP_ADDR
 
 repo_dir="C:\\Dev\\devstack-hyperv-incubator"
+win_user=Administrator
+win_password=Passw0rd
 host_config_dir="\${ENV:ProgramFiles(x86)}\\Cloudbase Solutions\\OpenStack\\Nova\\etc"
+host_logs_dir="/OpenStack/Log"
 devstack_dir="$HOME/devstack"
 images_dir=$devstack_dir
 config_file="config.yaml"
 vhd_image_url="https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros.vhd"
 vhdx_image_url="https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros.vhdx"
+max_parallel_tests=8
+max_attempts=5
+
+test_reports_base_dir=$BASEDIR/reports
 
 clone_pull_repo $devstack_dir "https://github.com/openstack-dev/devstack.git" $DEVSTACK_BRANCH
 cp local.conf $devstack_dir
@@ -246,10 +281,20 @@ cp local.sh $devstack_dir
 check_get_image $vhd_image_url "$images_dir/cirros.vhd"
 check_get_image $vhdx_image_url "$images_dir/cirros.vhdx"
 
+reports_dir_name=`date +"%Y_%m_%d_%H_%M_%S_%N"`
+
 test_names=(`get_config_tests`)
 for test_name in ${test_names[@]};
 do
     echo "Current test: $test_name"
+
+    test_reports_dir="$test_reports_base_dir/$reports_dir_name/$test_name"
+    echo "Results dir: $test_reports_dir"
+
+    test_logs_dir="$test_reports_dir/logs"
+    test_config_dir="$test_reports_dir/config"
+    mkdir -p "$test_logs_dir"
+    mkdir -p "$test_config_dir"
 
     unset DEVSTACK_LIVE_MIGRATION
     unset DEVSTACK_SAME_HOST_RESIZE
@@ -262,17 +307,19 @@ do
     export DEVSTACK_SAME_HOST_RESIZE=${devstack_config[allow_resize_to_same_host]}
     export DEVSTACK_IMAGE_FILE="${devstack_config[image]}"
     export DEVSTACK_IMAGES_DIR=$images_dir
+    export DEVSTACK_LOGS_DIR="$test_logs_dir/devstack"
 
-    #stack_devstack
+    mkdir -p $DEVSTACK_LOGS_DIR
+    stack_devstack > $DEVSTACK_LOGS_DIR/devstack.txt 2> $DEVSTACK_LOGS_DIR/devstack_err.txt
 
     host_names=(`get_config_test_hosts $test_name`)
     for host_name in ${host_names[@]};
     do
         echo "Configuring host: $host_name"
 
-        exec_with_retry 5 10 setup_win_host $host_name
-        exec_with_retry 5 10 uninstall_compute $host_name
-        exec_with_retry 5 10 install_compute $host_name
+        exec_with_retry 15 2 setup_win_host $host_name
+        exec_with_retry 3 10 uninstall_compute $host_name
+        exec_with_retry 3 10 install_compute $host_name
 
         host_config_files=(`get_config_test_host_config_files $test_name $host_name`)
         for host_config_file in ${host_config_files[@]};
@@ -299,11 +346,16 @@ do
 
     exec_with_retry 30 2 check_host_services_count ${#host_names[@]}
 
-    #$BASEDIR/runtests.sh
+    $BASEDIR/runtests.sh $max_parallel_tests $max_attempts "$test_reports_dir/subunit-output.log" "$test_reports_dir/results.html" > $test_logs_dir/out.txt 2> $test_logs_dir/err.txt || true
 
     for host_name in ${host_names[@]};
     do
-        exec_with_retry 5 10 uninstall_compute $host_name
+        exec_with_retry 5 10 stop_compute_services $host_name
+        exec_with_retry 15 2 get_win_host_config_files $host_name "$test_config_dir/$host_name"
+
+        exec_with_retry 3 10 uninstall_compute $host_name
+
+        exec_with_retry 15 2 get_win_host_log_files $host_name "$test_logs_dir/$host_name"
     done
 done
 
