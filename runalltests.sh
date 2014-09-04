@@ -47,8 +47,10 @@ function uninstall_compute() {
 
 function install_compute() {
     local win_host=$1
+    local devstack_host=$2
+    local password=$3
     echo "Installing OpenStack services on: $win_host"
-    run_wsman_ps $win_host "cd $repo_dir; .\\installnova.ps1"
+    run_wsman_ps $win_host "cd $repo_dir; .\\installnova.ps1 -DevstackHost $devstack_host -Password $password"
 }
 
 function restart_compute_services() {
@@ -259,6 +261,9 @@ export DEVSTACK_BRANCH
 DEVSTACK_IP_ADDR=`get_devstack_ip_addr`
 export DEVSTACK_IP_ADDR
 
+DEVSTACK_PASSWORD=Passw0rd
+export DEVSTACK_PASSWORD
+
 repo_dir="C:\\Dev\\devstack-hyperv-incubator"
 win_user=Administrator
 win_password=Passw0rd
@@ -318,8 +323,8 @@ do
         echo "Configuring host: $host_name"
 
         exec_with_retry 15 2 setup_win_host $host_name
-        exec_with_retry 3 10 uninstall_compute $host_name
-        exec_with_retry 3 10 install_compute $host_name
+        exec_with_retry 20 15 uninstall_compute $host_name
+        exec_with_retry 20 15 install_compute $host_name $DEVSTACK_IP_ADDR "$DEVSTACK_PASSWORD"
 
         host_config_files=(`get_config_test_host_config_files $test_name $host_name`)
         for host_config_file in ${host_config_files[@]};
@@ -346,14 +351,14 @@ do
 
     exec_with_retry 30 2 check_host_services_count ${#host_names[@]}
 
-    $BASEDIR/runtests.sh $max_parallel_tests $max_attempts "$test_reports_dir/subunit-output.log" "$test_reports_dir/results.html" > $test_logs_dir/out.txt 2> $test_logs_dir/err.txt || true
+    $BASEDIR/runtests.sh $max_parallel_tests $max_attempts "$test_reports_dir/subunit-output.log" "$test_reports_dir/results.html" > $test_logs_dir/out.txt 2> $test_logs_dir/err.txt || echo "Some tests failed!"
 
     for host_name in ${host_names[@]};
     do
         exec_with_retry 5 10 stop_compute_services $host_name
         exec_with_retry 15 2 get_win_host_config_files $host_name "$test_config_dir/$host_name"
 
-        exec_with_retry 3 10 uninstall_compute $host_name
+        exec_with_retry 20 15 uninstall_compute $host_name
 
         exec_with_retry 15 2 get_win_host_log_files $host_name "$test_logs_dir/$host_name"
     done
