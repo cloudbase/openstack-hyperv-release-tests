@@ -1,6 +1,12 @@
 $ErrorActionPreference = "Stop"
 [Environment]::CurrentDirectory = $pwd
 
+$products = gwmi Win32_Product -filter "Vendor = 'Cloudbase Solutions Srl'" | where {$_.Caption.StartsWith('OpenStack Hyper-V Nova Compute')}
+if ($products) {
+    Write-Host "Product already installed"
+    exit 0
+}
+
 $svc = gwmi -Query "Select * From Win32_Service Where Name='MSiSCSI'"
 if ($svc.StartMode -ne 'Auto') {
     $svc.ChangeStartMode('Automatic')
@@ -19,7 +25,9 @@ $devstackHost = "10.14.0.26"
 $password = "Passw0rd"
 
 $domainInfo = gwmi Win32_NTDomain
-$domainName = $domainInfo.DomainName
+if($domainInfo.DomainName) {
+    $domainName = $domainInfo.DomainName[1]
+}
 
 $features = @(
 "HyperVNovaCompute",
@@ -33,13 +41,13 @@ if($domainName) {
     $features += "LiveMigration"
 }
 
-$msi_log_path="C:\OpenStack\Log\install_log.txt"
-$log_dir = split-path $msi_log_path
-if(!(Test-Path $log_dir)) {
-    mkdir $log_dir
+$msiLogPath="C:\OpenStack\Log\install_log.txt"
+$logDir = split-path $msiLogPath
+if(!(Test-Path $logDir)) {
+    mkdir $logDir
 }
 
-$msiArgs = "/i $msi /qn /l*v $msi_log_path " + `
+$msiArgs = "/i $msi /qn /l*v $msiLogPath " + `
 
 "ADDLOCAL=" + ($features -join ",") + " " +
 
