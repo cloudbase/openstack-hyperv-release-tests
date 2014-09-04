@@ -1,4 +1,9 @@
-$ErrorActionPreference = "Stop"
+Param(
+  [string]$DevstackHost = $(throw "-DevstackHost is required."),
+  [string]$Password = $(throw "-Password is required.")
+ )
+
+ $ErrorActionPreference = "Stop"
 [Environment]::CurrentDirectory = $pwd
 
 $products = gwmi Win32_Product -filter "Vendor = 'Cloudbase Solutions Srl'" | where {$_.Caption.StartsWith('OpenStack Hyper-V Nova Compute')}
@@ -20,9 +25,6 @@ if(Test-Path $msi) {
     del $msi
 }
 (New-Object System.Net.WebClient).DownloadFile("https://www.cloudbase.it/downloads/$msi", $msi)
-
-$devstackHost = "10.14.0.26"
-$password = "Passw0rd"
 
 $domainInfo = gwmi Win32_NTDomain
 if($domainInfo.DomainName) {
@@ -51,15 +53,15 @@ $msiArgs = "/i $msi /qn /l*v $msiLogPath " + `
 
 "ADDLOCAL=" + ($features -join ",") + " " +
 
-"GLANCEHOST=$devstackHost " +
+"GLANCEHOST=$DevstackHost " +
 "RPCBACKEND=RabbitMQ " +
-"RPCBACKENDHOST=$devstackHost " +
+"RPCBACKENDHOST=$DevstackHost " +
 "RPCBACKENDPASSWORD=Passw0rd " +
 
 "INSTANCESPATH=C:\OpenStack\Instances " +
 "LOGDIR=C:\OpenStack\Log " +
 
-"RDPCONSOLEURL=http://${devstackHost}:8000 " +
+"RDPCONSOLEURL=http://${DevstackHost}:8000 " +
 
 "ADDVSWITCH=0 " +
 "VSWITCHNAME=external " +
@@ -71,22 +73,22 @@ $msiArgs = "/i $msi /qn /l*v $msiLogPath " + `
 "ENABLELOGGING=1 " +
 "VERBOSELOGGING=1 " +
 
-"NEUTRONURL=http://${devstackHost}:9696 " +
+"NEUTRONURL=http://${DevstackHost}:9696 " +
 "NEUTRONADMINTENANTNAME=service " +
 "NEUTRONADMINUSERNAME=neutron " +
-"NEUTRONADMINPASSWORD=$password " +
-"NEUTRONADMINAUTHURL=http://${devstackHost}:35357/v2.0 " +
+"NEUTRONADMINPASSWORD=$Password " +
+"NEUTRONADMINAUTHURL=http://${DevstackHost}:35357/v2.0 " +
 
 "CEILOMETERADMINTENANTNAME=service " +
 "CEILOMETERADMINUSERNAME=ceilometer " +
-"CEILOMETERADMINPASSWORD=$password " +
-"CEILOMETERADMINAUTHURL=http://${devstackHost}:35357/v2.0 "
+"CEILOMETERADMINPASSWORD=$Password " +
+"CEILOMETERADMINAUTHURL=http://${DevstackHost}:35357/v2.0 "
 
 if ($domainName -and $features -ccontains "LiveMigration") {
     $msiArgs += "LIVEMIGRAUTHTYPE=1 " +
         "MAXACTIVEVSMIGR=8 " +
         "MAXACTIVESTORAGEMIGR=8 " +
-        "MIGRNETWORKS=10.14.0.0/16 " +
+        "MIGRNETWORKSANY=1 " +
         "NOVACOMPUTESERVICEUSER=${domainName}\Administrator "
 }
 else {
