@@ -332,18 +332,18 @@ function copy_devstack_config_files() {
 }
 
 msi_url=$1
-test_names_subset=${@:2}
+DEVSTACK_BRANCH=${2:-"stable/icehouse"}
+test_names_subset=${@:3}
 
 if [ -z "$msi_url" ];
 then
-    echo "Usage: $0 <msi_url> [test_name]+"
+    echo "Usage: $0 <msi_url> <devstack_branch> [test_name]+"
     exit 1
 fi
 
 # Check if the URL is valid
 wget -q --spider --no-check-certificate $msi_url || (echo "$msi_url is not a valid url"; exit 1)
 
-DEVSTACK_BRANCH="stable/icehouse"
 export DEVSTACK_BRANCH
 
 DEVSTACK_IP_ADDR=`get_devstack_ip_addr`
