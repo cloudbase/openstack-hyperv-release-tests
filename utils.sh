@@ -22,6 +22,14 @@ function run_wsman_ps() {
     run_wsman_cmd $host "powershell -NonInteractive -ExecutionPolicy RemoteSigned -Command $cmd"
 }
 
+function get_win_time() {
+    local host=$1
+    # Seconds since EPOCH
+    host_time=`run_wsman_ps $host "[Math]::Truncate([double]::Parse((Get-Date (get-date).ToUniversalTime() -UFormat %s)))" 2>&1`
+    # Skip the newline
+    echo ${host_time::-1}
+}
+
 function set_win_config_file_entry() {
     local win_host=$1
     local host_config_file_path=$2

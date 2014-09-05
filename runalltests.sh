@@ -176,6 +176,19 @@ function copy_devstack_config_files() {
     check_copy_dir /opt/stack/tempest/etc $dest_dir/tempest
 }
 
+function check_host_time() {
+    local host=$1
+    host_time=`get_win_time $host`
+    local_time=`date +%s`
+
+    local delta=$((local_time - host_time))
+    if [ ${delta#-} -gt 300 ];
+    then
+        echo "Host $host time offset compared to this host is too high: $delta"
+        return 1
+    fi
+}
+
 msi_url=$1
 DEVSTACK_BRANCH=${2:-"stable/icehouse"}
 test_names_subset=${@:3}
@@ -277,6 +290,9 @@ do
     for host_name in ${host_names[@]};
     do
         echo "Configuring host: $host_name"
+
+        # Make sure the host's time offset is acceptable
+        check_host_time $host_name
 
         firewall_manage_ports $host_name add enable ${tcp_ports[@]}
 
