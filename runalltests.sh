@@ -31,7 +31,7 @@ function setup_win_host() {
             mkdir $repo_dir
         };
         cd (Split-Path $repo_dir -Parent);
-        git clone https://github.com/cloudbase/devstack-hyperv-incubator
+        git clone $git_repo_url
     } else {
         cd $repo_dir;
         git pull
@@ -352,6 +352,7 @@ export DEVSTACK_IP_ADDR
 DEVSTACK_PASSWORD=Passw0rd
 export DEVSTACK_PASSWORD
 
+git_repo_url="https://github.com/cloudbase/devstack-hyperv-incubator"
 repo_dir="C:\\Dev\\devstack-hyperv-incubator"
 win_user=Administrator
 win_password=Passw0rd
