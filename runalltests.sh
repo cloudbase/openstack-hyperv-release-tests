@@ -378,7 +378,7 @@ check_get_image $vhdx_image_url "$images_dir/cirros.vhdx"
 
 reports_dir_name=`date +"%Y_%m_%d_%H_%M_%S_%N"`
 
-failed_tests=0
+has_failed_tests=0
 
 test_names=(`get_config_tests`)
 for test_name in ${test_names[@]};
@@ -467,7 +467,7 @@ do
     echo "Running Tempest tests"
     subunit_log_file="$test_reports_dir/subunit-output.log"
     html_results_file="$test_reports_dir/results.html"
-    $BASEDIR/runtests.sh $max_parallel_tests $max_attempts "$subunit_log_file" "$html_results_file" > $test_logs_dir/out.txt 2> $test_logs_dir/err.txt || ((failed_tests++))
+    $BASEDIR/runtests.sh $max_parallel_tests $max_attempts "$subunit_log_file" "$html_results_file" > $test_logs_dir/out.txt 2> $test_logs_dir/err.txt || has_failed_tests=1
 
     subunit-stats --no-passthrough "$subunit_log_file"
 
@@ -490,4 +490,4 @@ do
     firewall_manage_ports "" del disable ${tcp_ports[@]}
 done
 
-exit $failed_tests
+exit $has_failed_tests
