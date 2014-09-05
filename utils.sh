@@ -36,7 +36,7 @@ function set_win_config_file_entry() {
     local config_section=$3
     local entry_name=$4
     local entry_value=$5
-    run_wsman_ps $win_host "cd $repo_dir; Import-Module .\ini.psm1; Set-IniFileValue -Path \\\"$host_config_file_path\\\" -Section $config_section -Key $entry_name -Value $entry_value"
+    run_wsman_ps $win_host "cd $repo_dir\\windows; Import-Module .\ini.psm1; Set-IniFileValue -Path \\\"$host_config_file_path\\\" -Section $config_section -Key $entry_name -Value $entry_value"
 }
 
 function push_dir() {

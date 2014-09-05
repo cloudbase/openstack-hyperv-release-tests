@@ -25,7 +25,7 @@ function setup_win_host() {
 function uninstall_compute() {
     local win_host=$1
     echo "Uninstalling OpenStack services on: $win_host"
-    run_wsman_ps $win_host "cd $repo_dir; .\\uninstallnova.ps1"
+    run_wsman_ps $win_host "cd $repo_dir\\windows; .\\uninstallnova.ps1"
 }
 
 function install_compute() {
@@ -34,19 +34,19 @@ function install_compute() {
     local password=$3
     local msi_url=$4
     echo "Installing OpenStack services on: $win_host"
-    run_wsman_ps $win_host "cd $repo_dir; .\\installnova.ps1 -DevstackHost $devstack_host -Password $password -MSIUrl $msi_url"
+    run_wsman_ps $win_host "cd $repo_dir\\windows; .\\installnova.ps1 -DevstackHost $devstack_host -Password $password -MSIUrl $msi_url"
 }
 
 function restart_compute_services() {
     local win_host=$1
     echo "Restarting OpenStack services on: $win_host"
-    run_wsman_ps $win_host "cd $repo_dir; .\\restartcomputeservices.ps1"
+    run_wsman_ps $win_host "cd $repo_dir\\windows; .\\restartcomputeservices.ps1"
 }
 
 function stop_compute_services() {
     local win_host=$1
     echo "Stopping OpenStack services on: $win_host"
-    run_wsman_ps $win_host "cd $repo_dir; .\\stopcomputeservices.ps1"
+    run_wsman_ps $win_host "cd $repo_dir\\windows; .\\stopcomputeservices.ps1"
 }
 
 function get_win_host_log_files() {
@@ -61,7 +61,7 @@ function get_win_host_config_files() {
     local local_dir=$2
     mkdir -p $local_dir
 
-    local host_config_dir_esc=`run_wsman_ps $host_name "cd $repo_dir; Import-Module .\ShortPath.psm1; Get-ShortPathName \\\\\"$host_config_dir\\\\\"" 2>&1`
+    local host_config_dir_esc=`run_wsman_ps $host_name "cd $repo_dir\\windows; Import-Module .\ShortPath.psm1; Get-ShortPathName \\\\\"$host_config_dir\\\\\"" 2>&1`
     get_win_files $host_name "${host_config_dir_esc#*:}" $local_dir
 }
 
