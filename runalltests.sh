@@ -49,8 +49,9 @@ function install_compute() {
     local win_host=$1
     local devstack_host=$2
     local password=$3
+    local msi_url=$4
     echo "Installing OpenStack services on: $win_host"
-    run_wsman_ps $win_host "cd $repo_dir; .\\installnova.ps1 -DevstackHost $devstack_host -Password $password"
+    run_wsman_ps $win_host "cd $repo_dir; .\\installnova.ps1 -DevstackHost $devstack_host -Password $password -MSIUrl $msi_url"
 }
 
 function restart_compute_services() {
@@ -330,6 +331,18 @@ function copy_devstack_config_files() {
     check_copy_dir /opt/stack/tempest/etc $dest_dir/tempest
 }
 
+msi_url=$1
+test_names_subset=${@:2}
+
+if [ -z "$msi_url" ];
+then
+    echo "Usage: $0 <msi_url> [test_name]+"
+    exit 1
+fi
+
+# Check if the URL is valid
+wget -q --spider --no-check-certificate $msi_url || (echo "$msi_url is not a valid url"; exit 1)
+
 DEVSTACK_BRANCH="stable/icehouse"
 export DEVSTACK_BRANCH
 
@@ -365,7 +378,6 @@ check_get_image $vhdx_image_url "$images_dir/cirros.vhdx"
 reports_dir_name=`date +"%Y_%m_%d_%H_%M_%S_%N"`
 
 failed_tests=0
-test_names_subset=$@
 
 test_names=(`get_config_tests`)
 for test_name in ${test_names[@]};
@@ -424,7 +436,7 @@ do
 
         exec_with_retry 15 2 setup_win_host $host_name
         exec_with_retry 20 15 uninstall_compute $host_name
-        exec_with_retry 20 15 install_compute $host_name $DEVSTACK_IP_ADDR "$DEVSTACK_PASSWORD"
+        exec_with_retry 20 15 install_compute $host_name $DEVSTACK_IP_ADDR "$DEVSTACK_PASSWORD" $msi_url
 
         host_config_files=(`get_config_test_host_config_files $test_name $host_name`)
         for host_config_file in ${host_config_files[@]};
