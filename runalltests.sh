@@ -365,10 +365,27 @@ check_get_image $vhdx_image_url "$images_dir/cirros.vhdx"
 reports_dir_name=`date +"%Y_%m_%d_%H_%M_%S_%N"`
 
 failed_tests=0
+test_names_subset=$@
 
 test_names=(`get_config_tests`)
 for test_name in ${test_names[@]};
 do
+    if [ "${test_names_subset[@]}" ];
+        then
+        skip_test=1
+        for tmp_name in ${test_names_subset[@]};
+        do
+            if [ "$test_name" == "$tmp_name" ]; then
+                skip_test=0
+                break
+            fi
+        done
+        if [ $skip_test -ne 0 ]; then
+            echo "Skipping test: $test_name"
+            continue
+        fi
+    fi
+
     echo "Current test: $test_name"
 
     test_reports_dir="$test_reports_base_dir/$reports_dir_name/$test_name"
