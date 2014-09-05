@@ -173,7 +173,7 @@ function copy_devstack_config_files() {
     check_copy_dir /etc/swift $dest_dir
 
     mkdir $dest_dir/tempest
-    check_copy_dir /opt/stack/tempest/etc $dest_dir/tempest
+    check_copy_dir $tempest_dir/etc $dest_dir/tempest
 }
 
 function check_host_time() {
@@ -218,6 +218,7 @@ host_config_dir="\${ENV:ProgramFiles(x86)}\\Cloudbase Solutions\\OpenStack\\Nova
 host_logs_dir="/OpenStack/Log"
 devstack_dir="$HOME/devstack"
 images_dir=$devstack_dir
+tempest_dir="/opt/stack/tempest"
 config_file="config.yaml"
 vhd_image_url="https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros.vhd"
 vhdx_image_url="https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros.vhdx"
@@ -328,7 +329,7 @@ do
     echo "Running Tempest tests"
     subunit_log_file="$test_reports_dir/subunit-output.log"
     html_results_file="$test_reports_dir/results.html"
-    $BASEDIR/runtests.sh $max_parallel_tests $max_attempts "$subunit_log_file" "$html_results_file" > $test_logs_dir/out.txt 2> $test_logs_dir/err.txt || has_failed_tests=1
+    $BASEDIR/run-all-tests.sh $tempest_dir $max_parallel_tests $max_attempts "$subunit_log_file" "$html_results_file" > $test_logs_dir/out.txt 2> $test_logs_dir/err.txt || has_failed_tests=1
 
     subunit-stats --no-passthrough "$subunit_log_file" || true
 

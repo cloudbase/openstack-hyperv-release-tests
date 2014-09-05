@@ -10,7 +10,7 @@ function run_test_retry(){
     local exit_code=0
 
     pushd . > /dev/null
-    cd $tempest_dir
+    cd $tests_dir
 
     while : ; do
         > $tmp_log_file
@@ -96,11 +96,11 @@ function parallel_test_runner() {
 
 
 tests_file=$1
-log_file=$2
-max_parallel_tests=${3:-10}
-max_attempts=${4:-5}
-run_isolated=${5:-0}
-tempest_dir=${6:-"/opt/stack/tempest"}
+tests_dir=$2
+log_file=$3
+max_parallel_tests=${4:-10}
+max_attempts=${5:-5}
+run_isolated=${6:-0}
 
 tests=(`awk '{print}' $tests_file`)
 
