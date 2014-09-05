@@ -469,7 +469,7 @@ do
     html_results_file="$test_reports_dir/results.html"
     $BASEDIR/runtests.sh $max_parallel_tests $max_attempts "$subunit_log_file" "$html_results_file" > $test_logs_dir/out.txt 2> $test_logs_dir/err.txt || has_failed_tests=1
 
-    subunit-stats --no-passthrough "$subunit_log_file"
+    subunit-stats --no-passthrough "$subunit_log_file" || true
 
     copy_devstack_config_files "$test_config_dir/devstack"
 
