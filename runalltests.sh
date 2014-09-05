@@ -268,6 +268,36 @@ function check_host_services_count() {
     fi
 }
 
+function firewall_manage_ports() {
+    local host=$1
+    local cmd=$2
+    local target=$3
+    local tcp_ports=${@:4}
+    local iptables_cmd=""
+    local source_param=""
+
+    if [ "$cmd" == "add" ]; then
+        iptables_cmd="-I"
+    else
+        iptables_cmd="-D"
+    fi
+
+    if [ "$target" == "enable" ]; then
+        iptables_target="ACCEPT"
+    else
+        iptables_target="REJECT"
+    fi
+
+    if [ "$host" ]; then
+        source_param="-s $host"
+    fi
+
+    for port in ${tcp_ports[@]};
+    do
+        sudo iptables $iptables_cmd INPUT -p tcp --dport $port $source_param -j $iptables_target
+    done
+}
+
 DEVSTACK_BRANCH="stable/icehouse"
 export DEVSTACK_BRANCH
 
@@ -289,6 +319,7 @@ vhd_image_url="https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scr
 vhdx_image_url="https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros.vhdx"
 max_parallel_tests=8
 max_attempts=5
+tcp_ports=(5672 5000 9292 9696 35357)
 
 test_reports_base_dir=$BASEDIR/reports
 
@@ -300,6 +331,9 @@ check_get_image $vhd_image_url "$images_dir/cirros.vhd"
 check_get_image $vhdx_image_url "$images_dir/cirros.vhdx"
 
 reports_dir_name=`date +"%Y_%m_%d_%H_%M_%S_%N"`
+
+# Disable access to OpenStack services to any remote host
+firewall_manage_ports "" add disable ${tcp_ports[@]}
 
 test_names=(`get_config_tests`)
 for test_name in ${test_names[@]};
@@ -334,6 +368,8 @@ do
     for host_name in ${host_names[@]};
     do
         echo "Configuring host: $host_name"
+
+        firewall_manage_ports $host_name add enable ${tcp_ports[@]}
 
         exec_with_retry 15 2 setup_win_host $host_name
         exec_with_retry 20 15 uninstall_compute $host_name
@@ -373,6 +409,8 @@ do
     for host_name in ${host_names[@]};
     do
         exec_with_retry 5 10 stop_compute_services $host_name
+        firewall_manage_ports $host_name del enable ${tcp_ports[@]}
+
         exec_with_retry 15 2 get_win_host_config_files $host_name "$test_config_dir/$host_name"
 
         exec_with_retry 20 15 uninstall_compute $host_name
@@ -382,4 +420,6 @@ do
 
     exec_with_retry 5 0 unstack_devstack $DEVSTACK_LOGS_DIR
 done
+
+firewall_manage_ports "" del disable ${tcp_ports[@]}
 
