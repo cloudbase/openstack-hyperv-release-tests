@@ -351,7 +351,11 @@ do
 
     exec_with_retry 30 2 check_host_services_count ${#host_names[@]}
 
-    $BASEDIR/runtests.sh $max_parallel_tests $max_attempts "$test_reports_dir/subunit-output.log" "$test_reports_dir/results.html" > $test_logs_dir/out.txt 2> $test_logs_dir/err.txt || echo "Some tests failed!"
+    subunit_log_file="$test_reports_dir/subunit-output.log"
+    html_results_file="$test_reports_dir/results.html"
+    $BASEDIR/runtests.sh $max_parallel_tests $max_attempts "$subunit_log_file" "$html_results_file" > $test_logs_dir/out.txt 2> $test_logs_dir/err.txt || echo "Some tests failed!"
+
+    subunit-stats --no-passthrough "$subunit_log_file"
 
     for host_name in ${host_names[@]};
     do
