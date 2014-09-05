@@ -303,6 +303,33 @@ function firewall_manage_ports() {
     done
 }
 
+function check_copy_dir() {
+    local src_dir=$1
+    local dest_dir=$2
+
+    if [ -d "$src_dir" ]; then
+        cp -r "$src_dir" "$dest_dir"
+    fi
+}
+
+function copy_devstack_config_files() {
+    local dest_dir=$1
+
+    mkdir -p $dest_dir
+
+    check_copy_dir /etc/ceilometer $dest_dir
+    check_copy_dir /etc/cinder $dest_dir
+    check_copy_dir /etc/glance $dest_dir
+    check_copy_dir /etc/heat $dest_dir
+    check_copy_dir /etc/keystone $dest_dir
+    check_copy_dir /etc/nova $dest_dir
+    check_copy_dir /etc/neutron $dest_dir
+    check_copy_dir /etc/swift $dest_dir
+
+    mkdir $dest_dir/tempest
+    check_copy_dir /opt/stack/tempest/etc $dest_dir/tempest
+}
+
 DEVSTACK_BRANCH="stable/icehouse"
 export DEVSTACK_BRANCH
 
@@ -410,6 +437,8 @@ do
     $BASEDIR/runtests.sh $max_parallel_tests $max_attempts "$subunit_log_file" "$html_results_file" > $test_logs_dir/out.txt 2> $test_logs_dir/err.txt || echo "Some tests failed!"
 
     subunit-stats --no-passthrough "$subunit_log_file"
+
+    copy_devstack_config_file "$test_config_dir/devstack"
 
     for host_name in ${host_names[@]};
     do
