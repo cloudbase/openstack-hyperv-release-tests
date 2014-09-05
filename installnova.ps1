@@ -1,6 +1,7 @@
 Param(
   [string]$DevstackHost = $(throw "-DevstackHost is required."),
-  [string]$Password = $(throw "-Password is required.")
+  [string]$Password = $(throw "-Password is required."),
+  [string]$MSIUrl = $(throw "-MSIUrl is required.")
  )
 
  $ErrorActionPreference = "Stop"
@@ -20,11 +21,11 @@ if (!$svc.Started) {
     $svc.StartService()
 }
 
-$msi = "HyperVNovaCompute_Icehouse_2014_1_2.msi"
+$msi = "HyperVNovaCompute_Test.msi"
 if(Test-Path $msi) {
     del $msi
 }
-(New-Object System.Net.WebClient).DownloadFile("https://www.cloudbase.it/downloads/$msi", $msi)
+(New-Object System.Net.WebClient).DownloadFile($MSIUrl, $msi)
 
 $domainInfo = gwmi Win32_NTDomain
 if($domainInfo.DomainName) {
