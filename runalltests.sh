@@ -458,7 +458,7 @@ do
 
     subunit-stats --no-passthrough "$subunit_log_file"
 
-    copy_devstack_config_file "$test_config_dir/devstack"
+    copy_devstack_config_files "$test_config_dir/devstack"
 
     for host_name in ${host_names[@]};
     do
