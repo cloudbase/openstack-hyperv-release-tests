@@ -202,11 +202,24 @@ function get_neutron_agent_hosts() {
 }
 
 function stack_devstack() {
+    local log_dir=$1
+    local ret_val=0
     push_dir
     cd $devstack_dir
     ./unstack.sh || true
-    ./stack.sh
+    ./stack.sh > "$log_dir/devstack_stack.txt" 2> "$log_dir/devstack_stack_err.txt" || ret_val=$?
     pop_dir
+    return $ret_val
+}
+
+function unstack_devstack() {
+    local log_dir=$1
+    local ret_val=0
+    push_dir
+    cd $devstack_dir
+    ./unstack.sh > "$log_dir/devstack_unstack.txt" 2> "$log_dir/devstack_unstack_err.txt" || ret_val=$?
+    pop_dir
+    return $ret_val
 }
 
 function exec_with_retry () {
@@ -315,7 +328,7 @@ do
     export DEVSTACK_LOGS_DIR="$test_logs_dir/devstack"
 
     mkdir -p $DEVSTACK_LOGS_DIR
-    stack_devstack > $DEVSTACK_LOGS_DIR/devstack.txt 2> $DEVSTACK_LOGS_DIR/devstack_err.txt
+    exec_with_retry 5 0 stack_devstack $DEVSTACK_LOGS_DIR
 
     host_names=(`get_config_test_hosts $test_name`)
     for host_name in ${host_names[@]};
@@ -366,5 +379,7 @@ do
 
         exec_with_retry 15 2 get_win_host_log_files $host_name "$test_logs_dir/$host_name"
     done
+
+    exec_with_retry 5 0 unstack_devstack $DEVSTACK_LOGS_DIR
 done
 
