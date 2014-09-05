@@ -322,11 +322,8 @@ do
     do
         exec_with_retry 5 10 stop_compute_services $host_name
         firewall_manage_ports $host_name del enable ${tcp_ports[@]}
-
         exec_with_retry 15 2 get_win_host_config_files $host_name "$test_config_dir/$host_name"
-
         exec_with_retry 20 15 uninstall_compute $host_name
-
         exec_with_retry 15 2 get_win_host_log_files $host_name "$test_logs_dir/$host_name"
     done
 
