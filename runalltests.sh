@@ -206,7 +206,9 @@ function stack_devstack() {
     local ret_val=0
     push_dir
     cd $devstack_dir
-    ./unstack.sh || true
+    echo "Running unstack.sh"
+    ./unstack.sh > /dev/null 2>&1 || true
+    echo "Running stack.sh"
     ./stack.sh > "$log_dir/devstack_stack.txt" 2> "$log_dir/devstack_stack_err.txt" || ret_val=$?
     pop_dir
     return $ret_val
@@ -217,6 +219,7 @@ function unstack_devstack() {
     local ret_val=0
     push_dir
     cd $devstack_dir
+    echo "Running unstack.sh"
     ./unstack.sh > "$log_dir/devstack_unstack.txt" 2> "$log_dir/devstack_unstack_err.txt" || ret_val=$?
     pop_dir
     return $ret_val
@@ -275,6 +278,8 @@ function firewall_manage_ports() {
     local tcp_ports=${@:4}
     local iptables_cmd=""
     local source_param=""
+    # TODO: Add parameter / autmate interface discovery
+    local iface="eth0"
 
     if [ "$cmd" == "add" ]; then
         iptables_cmd="-I"
@@ -294,7 +299,7 @@ function firewall_manage_ports() {
 
     for port in ${tcp_ports[@]};
     do
-        sudo iptables $iptables_cmd INPUT -p tcp --dport $port $source_param -j $iptables_target
+        sudo iptables $iptables_cmd INPUT -i $iface -p tcp --dport $port $source_param -j $iptables_target
     done
 }
 
@@ -321,7 +326,7 @@ max_parallel_tests=8
 max_attempts=5
 tcp_ports=(5672 5000 9292 9696 35357)
 
-test_reports_base_dir=$BASEDIR/reports
+test_reports_base_dir=`realpath $BASEDIR/reports`
 
 clone_pull_repo $devstack_dir "https://github.com/openstack-dev/devstack.git" $DEVSTACK_BRANCH
 cp local.conf $devstack_dir
@@ -331,9 +336,6 @@ check_get_image $vhd_image_url "$images_dir/cirros.vhd"
 check_get_image $vhdx_image_url "$images_dir/cirros.vhdx"
 
 reports_dir_name=`date +"%Y_%m_%d_%H_%M_%S_%N"`
-
-# Disable access to OpenStack services to any remote host
-firewall_manage_ports "" add disable ${tcp_ports[@]}
 
 test_names=(`get_config_tests`)
 for test_name in ${test_names[@]};
@@ -360,6 +362,9 @@ do
     export DEVSTACK_IMAGE_FILE="${devstack_config[image]}"
     export DEVSTACK_IMAGES_DIR=$images_dir
     export DEVSTACK_LOGS_DIR="$test_logs_dir/devstack"
+
+    # Disable access to OpenStack services to any remote host
+    firewall_manage_ports "" add disable ${tcp_ports[@]}
 
     mkdir -p $DEVSTACK_LOGS_DIR
     exec_with_retry 5 0 stack_devstack $DEVSTACK_LOGS_DIR
@@ -419,7 +424,7 @@ do
     done
 
     exec_with_retry 5 0 unstack_devstack $DEVSTACK_LOGS_DIR
-done
 
-firewall_manage_ports "" del disable ${tcp_ports[@]}
+    firewall_manage_ports "" del disable ${tcp_ports[@]}
+done
 
