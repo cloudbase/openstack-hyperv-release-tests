@@ -26,6 +26,7 @@ function uninstall_compute() {
     local win_host=$1
     echo "Uninstalling OpenStack services on: $win_host"
     run_wsman_ps $win_host "cd $repo_dir\\windows; .\\uninstallnova.ps1"
+    echo "OpenStack services uninstalled on: $win_host"
 }
 
 function install_compute() {
@@ -35,6 +36,7 @@ function install_compute() {
     local msi_url=$4
     echo "Installing OpenStack services on: $win_host"
     run_wsman_ps $win_host "cd $repo_dir\\windows; .\\installnova.ps1 -DevstackHost $devstack_host -Password $password -MSIUrl $msi_url"
+    echo "OpenStack services installed on: $win_host"
 }
 
 function restart_compute_services() {
@@ -127,6 +129,8 @@ function stack_devstack() {
     ./unstack.sh > /dev/null 2>&1 || true
     echo "Running stack.sh"
     ./stack.sh > "$log_dir/devstack_stack.txt" 2> "$log_dir/devstack_stack_err.txt" || ret_val=$?
+    echo "stack.sh done"
+
     pop_dir
     return $ret_val
 }
@@ -138,6 +142,8 @@ function unstack_devstack() {
     cd $devstack_dir
     echo "Running unstack.sh"
     ./unstack.sh > "$log_dir/devstack_unstack.txt" 2> "$log_dir/devstack_unstack_err.txt" || ret_val=$?
+    echo "unstack.sh done"
+
     pop_dir
     return $ret_val
 }
@@ -187,6 +193,35 @@ function check_host_time() {
         echo "Host $host time offset compared to this host is too high: $delta"
         return 1
     fi
+}
+
+function setup_compute_host() {
+    local test_name=$1
+    local host_name=$2
+
+    echo "Configuring host: $host_name"
+
+    # Make sure the host's time offset is acceptable
+    check_host_time $host_name
+
+    exec_with_retry 15 2 setup_win_host $host_name
+    exec_with_retry 20 15 uninstall_compute $host_name
+    exec_with_retry 20 15 install_compute $host_name $DEVSTACK_IP_ADDR "$DEVSTACK_PASSWORD" $msi_url
+
+    host_config_files=(`get_config_test_host_config_files $test_name $host_name`)
+    for host_config_file in ${host_config_files[@]};
+    do
+        sections=(`get_config_test_host_config_file_sections $test_name $host_name $host_config_file`)
+        for section in ${sections[@]};
+        do
+             declare -A config_entries
+             eval "config_entries=(`get_config_test_host_config_file_section_entries $test_name $host_name $host_config_file $section`)"
+             for entry_name in ${!config_entries[@]};
+             do
+                 set_win_config_file_entry $host_name "$host_config_dir\\$host_config_file" $section $entry_name "${config_entries[$entry_name]}"
+             done
+        done
+    done
 }
 
 msi_url=$1
@@ -285,36 +320,26 @@ do
     firewall_manage_ports "" add disable ${tcp_ports[@]}
 
     mkdir -p $DEVSTACK_LOGS_DIR
-    exec_with_retry 5 0 stack_devstack $DEVSTACK_LOGS_DIR
+
+    pids=()
+    exec_with_retry 5 0 stack_devstack $DEVSTACK_LOGS_DIR &
+    pids+=("$!")
 
     host_names=(`get_config_test_hosts $test_name`)
     for host_name in ${host_names[@]};
     do
-        echo "Configuring host: $host_name"
+        setup_compute_host $test_name $host_name &
+        pids+=("$!")
+    done
 
-        # Make sure the host's time offset is acceptable
-        check_host_time $host_name
+    for pid in ${pids[@]};
+    do
+        wait $pid
+    done
 
+    for host_name in ${host_names[@]};
+    do
         firewall_manage_ports $host_name add enable ${tcp_ports[@]}
-
-        exec_with_retry 15 2 setup_win_host $host_name
-        exec_with_retry 20 15 uninstall_compute $host_name
-        exec_with_retry 20 15 install_compute $host_name $DEVSTACK_IP_ADDR "$DEVSTACK_PASSWORD" $msi_url
-
-        host_config_files=(`get_config_test_host_config_files $test_name $host_name`)
-        for host_config_file in ${host_config_files[@]};
-        do
-            sections=(`get_config_test_host_config_file_sections $test_name $host_name $host_config_file`)
-            for section in ${sections[@]};
-            do
-                 declare -A config_entries
-                 eval "config_entries=(`get_config_test_host_config_file_section_entries $test_name $host_name $host_config_file $section`)"
-                 for entry_name in ${!config_entries[@]};
-                 do
-                     set_win_config_file_entry $host_name "$host_config_dir\\$host_config_file" $section $entry_name "${config_entries[$entry_name]}"
-                 done
-            done
-        done
 
         exec_with_retry 5 10 restart_compute_services $host_name
 
@@ -340,11 +365,27 @@ do
         exec_with_retry 5 10 stop_compute_services $host_name
         firewall_manage_ports $host_name del enable ${tcp_ports[@]}
         exec_with_retry 15 2 get_win_host_config_files $host_name "$test_config_dir/$host_name"
-        exec_with_retry 20 15 uninstall_compute $host_name
-        exec_with_retry 15 2 get_win_host_log_files $host_name "$test_logs_dir/$host_name"
     done
 
-    exec_with_retry 5 0 unstack_devstack $DEVSTACK_LOGS_DIR
+    pids=()
+    for host_name in ${host_names[@]};
+    do
+        exec_with_retry 20 15 uninstall_compute $host_name &
+        pids+=("$!")
+    done
+
+    exec_with_retry 5 0 unstack_devstack $DEVSTACK_LOGS_DIR &
+    pids+=("$!")
+
+    for pid in ${pids[@]};
+    do
+        wait $pid
+    done
+
+    for host_name in ${host_names[@]};
+    do
+        exec_with_retry 15 2 get_win_host_log_files $host_name "$test_logs_dir/$host_name"
+    done
 
     firewall_manage_ports "" del disable ${tcp_ports[@]}
 done
