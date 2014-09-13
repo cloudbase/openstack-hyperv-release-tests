@@ -256,8 +256,6 @@ devstack_dir="$HOME/devstack"
 images_dir=$devstack_dir
 tempest_dir="/opt/stack/tempest"
 config_file="config.yaml"
-vhd_image_url="https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64.vhd.gz"
-vhdx_image_url="https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64.vhdx.gz"
 max_parallel_tests=8
 max_attempts=5
 tcp_ports=(5672 5000 9292 9696 35357)
@@ -267,9 +265,6 @@ test_reports_base_dir=`realpath $BASEDIR/reports`
 clone_pull_repo $devstack_dir "https://github.com/openstack-dev/devstack.git" $DEVSTACK_BRANCH
 cp local.conf $devstack_dir
 cp local.sh $devstack_dir
-
-check_get_image $vhd_image_url "$images_dir/cirros.vhd"
-check_get_image $vhdx_image_url "$images_dir/cirros.vhdx"
 
 reports_dir_name=`date +"%Y_%m_%d_%H_%M_%S_%N"`
 
@@ -313,7 +308,11 @@ do
     eval "devstack_config=(`get_config_test_devstack $test_name`)"
     export DEVSTACK_LIVE_MIGRATION=${devstack_config[live_migration]}
     export DEVSTACK_SAME_HOST_RESIZE=${devstack_config[allow_resize_to_same_host]}
-    export DEVSTACK_IMAGE_FILE="${devstack_config[image]}"
+
+    image_url="${devstack_config[image_url]}"
+    check_get_image $image_url "$images_dir"
+
+    export DEVSTACK_IMAGE_FILE=`check_get_image $image_url "$images_dir"`
     export DEVSTACK_IMAGES_DIR=$images_dir
     export DEVSTACK_LOGS_DIR="$test_logs_dir/devstack"
 

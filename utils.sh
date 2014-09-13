@@ -69,10 +69,22 @@ function clone_pull_repo() {
 
 function check_get_image() {
     local image_url=$1
-    local file_name=$2
-    if [ ! -f "$file_name" ]; then
-        wget $image_url -O $file_name
+    local images_dir=$2
+    local file_name_tmp="$images_dir/${image_url##*/}"
+    local file_name="$file_name_tmp"
+
+    if [ "${file_name_tmp##*.}" == "gz" ]; then
+        file_name="${file_name_tmp%.*}"
     fi
+
+    if [ ! -f "$file_name" ]; then
+        wget $image_url -O $file_name_tmp
+        if [ "${file_name_tmp##*.}" == "gz" ]; then
+            gunzip "$file_name_tmp"
+        fi
+    fi
+
+    echo "${file_name##*/}"
 }
 
 function check_nova_service_up() {
