@@ -2,7 +2,7 @@ HyperV2012r2_VHDX:
   devstack:
     live_migration: true
     allow_resize_to_same_host: false
-    image: cirros.vhdx
+    image: cirros.vhdx.gz
   hosts:
     NUCHV12R201:
       nova.conf:
@@ -18,7 +18,7 @@ HyperV2012r2_VHDX_no_CoW:
   devstack:
     live_migration: true
     allow_resize_to_same_host: false
-    image: cirros.vhdx
+    image: cirros.vhdx.gz
   hosts:
     NUCHV12R201:
       nova.conf:
@@ -36,7 +36,7 @@ HyperV2012r2_VHD:
   devstack:
     live_migration: true
     allow_resize_to_same_host: false
-    image: cirros.vhd
+    image: cirros.vhd.gz
   hosts:
     NUCHV12R201:
       nova.conf:
@@ -52,7 +52,7 @@ HyperV2012r2_dynamic_memory:
   devstack:
     live_migration: true
     allow_resize_to_same_host: false
-    image: cirros.vhdx
+    image: cirros.vhdx.gz
   hosts:
     NUCHV12R201:
       nova.conf:
@@ -72,7 +72,7 @@ HyperV2012_VHDX:
   devstack:
     live_migration: false
     allow_resize_to_same_host: true
-    image: cirros.vhdx
+    image: cirros.vhdx.gz
   hosts:
     NUCHV1201:
       nova.conf:
@@ -83,7 +83,7 @@ HyperV2012_VHD_v1:
   devstack:
     live_migration: false
     allow_resize_to_same_host: true
-    image: cirros.vhd
+    image: cirros.vhd.gz
   hosts:
     NUCHV1201:
       nova.conf:
@@ -97,11 +97,10 @@ HyperV2008r2:
   devstack:
     live_migration: false
     allow_resize_to_same_host: true
-    image: cirros.vhd
+    image: cirros.vhd.gz
   hosts:
     NUCHV08R201:
       nova.conf:
         DEFAULT:
           allow_resize_to_same_host: true
           debug: true
-

@@ -226,11 +226,12 @@ function setup_compute_host() {
 
 msi_url=$1
 DEVSTACK_BRANCH=${2:-"stable/icehouse"}
-test_names_subset=${@:3}
+test_suite=${3:-"default"}
+test_names_subset=${@:4}
 
 if [ -z "$msi_url" ];
 then
-    echo "Usage: $0 <msi_url> <devstack_branch> [test_name]+"
+    echo "Usage: $0 <msi_url> [devstack_branch] [test_suite] [test_name]+"
     exit 1
 fi
 
@@ -255,8 +256,8 @@ devstack_dir="$HOME/devstack"
 images_dir=$devstack_dir
 tempest_dir="/opt/stack/tempest"
 config_file="config.yaml"
-vhd_image_url="https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros.vhd"
-vhdx_image_url="https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros.vhdx"
+vhd_image_url="https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64.vhd.gz"
+vhdx_image_url="https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64.vhdx.gz"
 max_parallel_tests=8
 max_attempts=5
 tcp_ports=(5672 5000 9292 9696 35357)
@@ -351,10 +352,13 @@ do
 
     exec_with_retry 30 2 check_host_services_count ${#host_names[@]}
 
-    echo "Running Tempest tests"
+    echo "Running Tempest tests: $test_suite"
     subunit_log_file="$test_reports_dir/subunit-output.log"
     html_results_file="$test_reports_dir/results.html"
-    $BASEDIR/run-all-tests.sh $tempest_dir $max_parallel_tests $max_attempts "$subunit_log_file" "$html_results_file" > $test_logs_dir/out.txt 2> $test_logs_dir/err.txt || has_failed_tests=1
+    $BASEDIR/run-all-tests.sh $tempest_dir $max_parallel_tests $max_attempts \
+        $test_suite "$subunit_log_file" "$html_results_file" \
+        > $test_logs_dir/out.txt 2> $test_logs_dir/err.txt \
+        || has_failed_tests=1
 
     subunit-stats --no-passthrough "$subunit_log_file" || true
 
