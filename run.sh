@@ -71,6 +71,14 @@ function get_config_tests() {
     cat $config_file | python -c "import yaml; import sys; config=yaml.load(sys.stdin); print ' '.join(config.keys())"
 }
 
+function get_config_test_test_suite() {
+    local test_name=$1
+    cat $config_file | python -c "import yaml;
+import sys;
+config=yaml.load(sys.stdin);
+print config[\"$test_name\"].get('test_suite', 'default')"
+}
+
 function get_config_test_devstack() {
     local test_name=$1
     cat $config_file | python -c "import yaml;
@@ -226,7 +234,7 @@ function setup_compute_host() {
 
 msi_url=$1
 DEVSTACK_BRANCH=${2:-"stable/icehouse"}
-test_suite=${3:-"default"}
+test_suite_override=${3}
 test_names_subset=${@:4}
 
 if [ -z "$msi_url" ];
@@ -352,6 +360,12 @@ do
     done
 
     exec_with_retry 30 2 check_host_services_count ${#host_names[@]}
+
+    if [ $test_suite_override ]; then
+        test_suite=$test_suite_override
+    else
+        test_suite=`get_config_test_test_suite $test_name`
+    fi
 
     echo "Running Tempest tests: $test_suite"
     subunit_log_file="$test_reports_dir/subunit-output.log"
