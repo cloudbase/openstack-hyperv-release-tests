@@ -16,7 +16,7 @@ HyperV2012r2_VHDX:
           allow_resize_to_same_host: false
           debug: true
 HyperV2012r2_VHDX_fixed:
-  test_suite: minimum
+  test_suite: images
   devstack:
     live_migration: true
     allow_resize_to_same_host: false
@@ -52,7 +52,7 @@ HyperV2012r2_VHDX_no_CoW:
           allow_resize_to_same_host: false
           debug: true
 HyperV2012r2_VHDX_fixed_no_CoW:
-  test_suite: minimum
+  test_suite: images
   devstack:
     live_migration: true
     allow_resize_to_same_host: false
@@ -88,7 +88,7 @@ HyperV2012r2_VHD:
           allow_resize_to_same_host: false
           debug: true
 HyperV2012r2_VHD_fixed:
-  test_suite: minimum
+  test_suite: images
   devstack:
     live_migration: true
     allow_resize_to_same_host: false
