@@ -14,6 +14,22 @@ HyperV2012r2_VHDX:
         DEFAULT:
           allow_resize_to_same_host: false
           debug: true
+HyperV2012r2_VHDX_fixed:
+  devstack:
+    live_migration: true
+    allow_resize_to_same_host: false
+    image_url: https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64-fixed.vhdx.gz
+  hosts:
+    NUCHV12R201:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: false
+          debug: true
+    NUCHV12R202:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: false
+          debug: true
 HyperV2012r2_VHDX_no_CoW:
   devstack:
     live_migration: true
@@ -32,11 +48,45 @@ HyperV2012r2_VHDX_no_CoW:
           use_cow_images: false
           allow_resize_to_same_host: false
           debug: true
+HyperV2012r2_VHDX_fixed_no_CoW:
+  devstack:
+    live_migration: true
+    allow_resize_to_same_host: false
+    image_url: https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64-fixed.vhdx.gz
+  hosts:
+    NUCHV12R201:
+      nova.conf:
+        DEFAULT:
+          use_cow_images: false
+          allow_resize_to_same_host: false
+          debug: true
+    NUCHV12R202:
+      nova.conf:
+        DEFAULT:
+          use_cow_images: false
+          allow_resize_to_same_host: false
+          debug: true
 HyperV2012r2_VHD:
   devstack:
     live_migration: true
     allow_resize_to_same_host: false
     image_url: https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64.vhd.gz
+  hosts:
+    NUCHV12R201:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: false
+          debug: true
+    NUCHV12R202:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: false
+          debug: true
+HyperV2012r2_VHD_fixed:
+  devstack:
+    live_migration: true
+    allow_resize_to_same_host: false
+    image_url: https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64-fixed.vhd.gz
   hosts:
     NUCHV12R201:
       nova.conf:
