@@ -268,6 +268,8 @@ cp local.sh $devstack_dir
 
 reports_dir_name=`date +"%Y_%m_%d_%H_%M_%S_%N"`
 
+http_base_url="http://$DEVSTACK_IP_ADDR:8001"
+
 has_failed_tests=0
 
 test_names=(`get_config_tests`)
@@ -391,6 +393,11 @@ do
     done
 
     firewall_manage_ports "" del disable ${tcp_ports[@]}
+
+    http_test_base_url=$http_base_url/$reports_dir_name/$test_name
+    echo
+    echo "Test HTML results: $http_test_base_url/results.html"
+    echo "All test logs and config files: $http_test_base_url"
 done
 
 exit $has_failed_tests
