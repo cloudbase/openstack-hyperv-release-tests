@@ -78,7 +78,7 @@ function check_get_image() {
     fi
 
     if [ ! -f "$file_name" ]; then
-        wget $image_url -O $file_name_tmp
+        wget -q $image_url -O $file_name_tmp
         if [ "${file_name_tmp##*.}" == "gz" ]; then
             gunzip "$file_name_tmp"
         fi
