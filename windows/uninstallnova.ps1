@@ -16,6 +16,12 @@ if ($products) {
     }
 }
 
+$pythonProcesses = get-process | where {$_.Path -eq "${ENV:ProgramFiles(x86)}\Cloudbase Solutions\OpenStack\Nova\Python27\python.exe"}
+foreach($p in $pythonProcesses) {
+    Write-Warning "Killing OpenStack Python process. This process should not be alive!"
+    $p | kill -Force
+}
+
 $appPath = "${ENV:ProgramFiles(x86)}\Cloudbase Solutions\OpenStack\Nova"
 
 if(Test-Path $appPath) {
