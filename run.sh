@@ -17,11 +17,11 @@ function setup_win_host() {
         };
         cd (Split-Path $repo_dir -Parent);
         git clone $git_repo_url;
-        if(\$LASTEXITCODE) { throw \"git clone failed\" }
+        if(\$LASTEXITCODE) { throw \\\"git clone failed\\\" }
     } else {
         cd $repo_dir;
         git pull;
-        if(\$LASTEXITCODE) { throw \"git pull failed\" }
+        if(\$LASTEXITCODE) { throw \\\"git pull failed\\\" }
     }"
     run_wsman_ps $win_host "$cmd"
 }
