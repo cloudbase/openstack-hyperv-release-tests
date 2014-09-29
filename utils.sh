@@ -58,6 +58,7 @@ function clone_pull_repo() {
         git checkout $repo_branch
         git pull
     else
+        cd `dirname $repo_dir`
         git clone $repo_url
         cd $repo_dir
         if [ "$repo_branch" != "master" ]; then
@@ -177,5 +178,15 @@ function check_copy_dir() {
 
     if [ -d "$src_dir" ]; then
         cp -r "$src_dir" "$dest_dir"
+    fi
+}
+
+function add_user_to_passwordless_sudoers() {
+    local user_name=$1
+    local file_name=$2
+    local path=/etc/sudoers.d/$2
+
+    if [ ! -f $file_name ]; then
+        sudo sh -c "echo $user_name 'ALL=(ALL) NOPASSWD:ALL' > $path && chmod 440 $path"
     fi
 }

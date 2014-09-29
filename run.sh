@@ -9,15 +9,19 @@ function setup_win_host() {
     local win_host=$1
     echo "Setting up host: $win_host"
 
+    # Make sure git is in the PATH on the host, e.g.:
+    # setx /m PATH "$ENV:Path;${ENV:ProgramFiles(x86)}\Git\bin"
     cmd="if(!(Test-Path (Join-Path $repo_dir .git))) {
         if(!(Test-Path $repo_dir)) {
             mkdir $repo_dir
         };
         cd (Split-Path $repo_dir -Parent);
-        git clone $git_repo_url
+        git clone $git_repo_url;
+        if(\$LASTEXITCODE) { throw \"git clone failed\" }
     } else {
         cd $repo_dir;
-        git pull
+        git pull;
+        if(\$LASTEXITCODE) { throw \"git pull failed\" }
     }"
     run_wsman_ps $win_host "$cmd"
 }
@@ -137,7 +141,7 @@ function stack_devstack() {
     ./unstack.sh > /dev/null 2>&1 || true
     echo "Running stack.sh"
     ./stack.sh > "$log_dir/devstack_stack.txt" 2> "$log_dir/devstack_stack_err.txt" || ret_val=$?
-    echo "stack.sh done"
+    echo "stack.sh - exit code: $ret_val"
 
     pop_dir
     return $ret_val
@@ -150,7 +154,7 @@ function unstack_devstack() {
     cd $devstack_dir
     echo "Running unstack.sh"
     ./unstack.sh > "$log_dir/devstack_unstack.txt" 2> "$log_dir/devstack_unstack_err.txt" || ret_val=$?
-    echo "unstack.sh done"
+    echo "unstack.sh - exit code: $ret_val"
 
     pop_dir
     return $ret_val
@@ -273,11 +277,13 @@ max_parallel_tests=8
 max_attempts=5
 tcp_ports=(5672 5000 9292 9696 35357)
 
-test_reports_base_dir=`realpath $BASEDIR/reports`
+test_reports_base_dir=`realpath $BASEDIR`/reports
 
 clone_pull_repo $devstack_dir "https://github.com/openstack-dev/devstack.git" $DEVSTACK_BRANCH
 cp local.conf $devstack_dir
 cp local.sh $devstack_dir
+
+add_user_to_passwordless_sudoers $USER 70_devstack_hyperv
 
 reports_dir_name=`date +"%Y_%m_%d_%H_%M_%S_%N"`
 
