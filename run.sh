@@ -258,6 +258,11 @@ export DEVSTACK_IP_ADDR
 DEVSTACK_PASSWORD=Passw0rd
 export DEVSTACK_PASSWORD
 
+export OS_USERNAME=admin
+export OS_PASSWORD=$DEVSTACK_PASSWORD
+export OS_TENANT_NAME=admin
+export OS_AUTH_URL=http://127.0.0.1:5000/v2.0
+
 git_repo_url="https://github.com/cloudbase/devstack-hyperv-incubator"
 repo_dir="C:\\Dev\\devstack-hyperv-incubator"
 win_user=Administrator
