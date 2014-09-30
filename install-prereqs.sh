@@ -9,7 +9,7 @@ sudo apt-get install software-properties-common python-software-properties -y
 sudo add-apt-repository cloud-archive:icehouse -y
 sudo apt-get update
 sudo apt-get dist-upgrade -y
-sudo apt-get install -y realpath python-yaml python-pip
+sudo apt-get install -y realpath python-yaml python-pip smbclient
 
 sudo pip install pywinrm
 sudo pip install -U setuptools
