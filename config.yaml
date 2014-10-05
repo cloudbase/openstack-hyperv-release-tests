@@ -1,3 +1,18 @@
+HyperVThreshold_VHDX:
+  test_suite: default
+  devstack:
+    live_migration: false
+    allow_resize_to_same_host: true
+    image_url: https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64.vhdx.gz
+  hosts:
+    NUCHVTHTP01:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: true
+          debug: true
+      neutron_hyperv_agent.conf:
+        DEFAULT:
+          debug: true
 HyperV2012r2_VHDX:
   test_suite: default
   devstack:
