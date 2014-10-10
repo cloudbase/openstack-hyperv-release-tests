@@ -83,6 +83,14 @@ config=yaml.load(sys.stdin);
 print config[\"$test_name\"].get('test_suite', 'default')"
 }
 
+function get_config_test_include_default() {
+    local test_name=$1
+    cat $config_file | python -c "import yaml;
+import sys;
+config=yaml.load(sys.stdin);
+print config[\"$test_name\"].get('include_default', True)"
+}
+
 function get_config_test_devstack() {
     local test_name=$1
     cat $config_file | python -c "import yaml;
@@ -301,6 +309,11 @@ do
         done
         if [ $skip_test -ne 0 ]; then
             echo "Skipping test: $test_name"
+            continue
+        fi
+    else
+        if [ "`get_config_test_include_default $test_name`" != "True" ]; then
+            echo "Skipping test: $test_name. Not included by default"
             continue
         fi
     fi
