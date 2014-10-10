@@ -25,14 +25,15 @@ if [ ! -d "$tests_dir/.testrepository" ]; then
 fi
 
 $BASEDIR/parallel-test-runner.sh $tests_file $tests_dir $log_file \
-    $parallel_tests $max_attempts
+    $parallel_tests $max_attempts || true
 
 isolated_tests_file=$BASEDIR/isolated-tests-$test_suite.txt
 
 if [ -f "$isolated_tests_file" ]; then
+    echo "Running isolated tests from: $isolated_tests_file"
     log_tmp=$(tempfile)
     $BASEDIR/parallel-test-runner.sh $isolated_tests_file $tests_dir $log_tmp \
-        $parallel_tests $max_attempts 1
+        $parallel_tests $max_attempts 1 || true
 
     cat $log_tmp >> $log_file
     rm $log_tmp
