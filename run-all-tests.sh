@@ -9,10 +9,20 @@ results_html_file=${6:-"results.html"}
 
 BASEDIR=$(dirname $0)
 
+. $BASEDIR/utils.sh
+
 tests_file=$(tempfile)
 $BASEDIR/get-tests.sh $tests_dir $test_suite > $tests_file
 
 echo "Running tests from: $tests_file"
+
+if [ ! -d "$tests_dir/.testrepository" ]; then
+    push_dir
+    cd $tests_dir
+    echo "Initializing testr"
+    testr init
+    pop_dir
+fi
 
 $BASEDIR/parallel-test-runner.sh $tests_file $tests_dir $log_file \
     $parallel_tests $max_attempts

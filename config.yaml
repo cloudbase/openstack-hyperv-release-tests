@@ -1,3 +1,18 @@
+HyperVThreshold_VHDX:
+  test_suite: default
+  devstack:
+    live_migration: false
+    allow_resize_to_same_host: true
+    image_url: https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64.vhdx.gz
+  hosts:
+    NUCHVTHTP01:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: true
+          debug: true
+      neutron_hyperv_agent.conf:
+        DEFAULT:
+          debug: true
 HyperV2012r2_VHDX:
   test_suite: default
   devstack:
@@ -10,10 +25,16 @@ HyperV2012r2_VHDX:
         DEFAULT:
           allow_resize_to_same_host: false
           debug: true
+      neutron_hyperv_agent.conf:
+        DEFAULT:
+          debug: true
     NUCHV12R202:
       nova.conf:
         DEFAULT:
           allow_resize_to_same_host: false
+          debug: true
+      neutron_hyperv_agent.conf:
+        DEFAULT:
           debug: true
 HyperV2012r2_VHDX_fixed:
   test_suite: images
@@ -27,10 +48,16 @@ HyperV2012r2_VHDX_fixed:
         DEFAULT:
           allow_resize_to_same_host: false
           debug: true
+      neutron_hyperv_agent.conf:
+        DEFAULT:
+          debug: true
     NUCHV12R202:
       nova.conf:
         DEFAULT:
           allow_resize_to_same_host: false
+          debug: true
+      neutron_hyperv_agent.conf:
+        DEFAULT:
           debug: true
 HyperV2012r2_VHDX_no_CoW:
   test_suite: default
@@ -45,11 +72,17 @@ HyperV2012r2_VHDX_no_CoW:
           use_cow_images: false
           allow_resize_to_same_host: false
           debug: true
+      neutron_hyperv_agent.conf:
+        DEFAULT:
+          debug: true
     NUCHV12R202:
       nova.conf:
         DEFAULT:
           use_cow_images: false
           allow_resize_to_same_host: false
+          debug: true
+      neutron_hyperv_agent.conf:
+        DEFAULT:
           debug: true
 HyperV2012r2_VHDX_fixed_no_CoW:
   test_suite: images
@@ -64,11 +97,17 @@ HyperV2012r2_VHDX_fixed_no_CoW:
           use_cow_images: false
           allow_resize_to_same_host: false
           debug: true
+      neutron_hyperv_agent.conf:
+        DEFAULT:
+          debug: true
     NUCHV12R202:
       nova.conf:
         DEFAULT:
           use_cow_images: false
           allow_resize_to_same_host: false
+          debug: true
+      neutron_hyperv_agent.conf:
+        DEFAULT:
           debug: true
 HyperV2012r2_VHD:
   test_suite: default
@@ -82,10 +121,16 @@ HyperV2012r2_VHD:
         DEFAULT:
           allow_resize_to_same_host: false
           debug: true
+      neutron_hyperv_agent.conf:
+        DEFAULT:
+          debug: true
     NUCHV12R202:
       nova.conf:
         DEFAULT:
           allow_resize_to_same_host: false
+          debug: true
+      neutron_hyperv_agent.conf:
+        DEFAULT:
           debug: true
 HyperV2012r2_VHD_fixed:
   test_suite: images
@@ -99,10 +144,16 @@ HyperV2012r2_VHD_fixed:
         DEFAULT:
           allow_resize_to_same_host: false
           debug: true
+      neutron_hyperv_agent.conf:
+        DEFAULT:
+          debug: true
     NUCHV12R202:
       nova.conf:
         DEFAULT:
           allow_resize_to_same_host: false
+          debug: true
+      neutron_hyperv_agent.conf:
+        DEFAULT:
           debug: true
 HyperV2012r2_dynamic_memory:
   test_suite: default
@@ -118,6 +169,9 @@ HyperV2012r2_dynamic_memory:
           debug: true
         hyperv:
           dynamic_memory_ratio: 1.5
+      neutron_hyperv_agent.conf:
+        DEFAULT:
+          debug: true
     NUCHV12R202:
       nova.conf:
         DEFAULT:
@@ -125,6 +179,9 @@ HyperV2012r2_dynamic_memory:
           debug: true
         hyperv:
           dynamic_memory_ratio: 1.5
+      neutron_hyperv_agent.conf:
+        DEFAULT:
+          debug: true
 HyperV2012_VHDX:
   test_suite: default
   devstack:
@@ -136,6 +193,9 @@ HyperV2012_VHDX:
       nova.conf:
         DEFAULT:
           allow_resize_to_same_host: true
+          debug: true
+      neutron_hyperv_agent.conf:
+        DEFAULT:
           debug: true
 HyperV2012_VHD_v1:
   test_suite: default
@@ -152,6 +212,9 @@ HyperV2012_VHD_v1:
         hyperv:
           force_hyperv_utils_v1: true
           force_volumeutils_v1: true
+      neutron_hyperv_agent.conf:
+        DEFAULT:
+          debug: true
 HyperV2008r2:
   test_suite: default
   devstack:
@@ -163,4 +226,7 @@ HyperV2008r2:
       nova.conf:
         DEFAULT:
           allow_resize_to_same_host: true
+          debug: true
+      neutron_hyperv_agent.conf:
+        DEFAULT:
           debug: true

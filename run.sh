@@ -17,11 +17,11 @@ function setup_win_host() {
         };
         cd (Split-Path $repo_dir -Parent);
         git clone $git_repo_url;
-        if(\$LASTEXITCODE) { throw \"git clone failed\" }
+        if(\$LASTEXITCODE) { throw \\\"git clone failed\\\" }
     } else {
         cd $repo_dir;
         git pull;
-        if(\$LASTEXITCODE) { throw \"git pull failed\" }
+        if(\$LASTEXITCODE) { throw \\\"git pull failed\\\" }
     }"
     run_wsman_ps $win_host "$cmd"
 }
@@ -265,6 +265,11 @@ export DEVSTACK_IP_ADDR
 
 DEVSTACK_PASSWORD=Passw0rd
 export DEVSTACK_PASSWORD
+
+export OS_USERNAME=admin
+export OS_PASSWORD=$DEVSTACK_PASSWORD
+export OS_TENANT_NAME=admin
+export OS_AUTH_URL=http://127.0.0.1:5000/v2.0
 
 git_repo_url="https://github.com/cloudbase/devstack-hyperv-incubator"
 repo_dir="C:\\Dev\\devstack-hyperv-incubator"

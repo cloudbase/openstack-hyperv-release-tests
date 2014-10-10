@@ -3,13 +3,8 @@ set -e
 
 . ./functions-common
 
-export OS_USERNAME=admin
-export OS_PASSWORD=$DEVSTACK_PASSWORD
-export OS_TENANT_NAME=admin
-export OS_AUTH_URL=http://127.0.0.1:5000/v2.0
-
 nova flavor-delete 42
-nova flavor-create m1.nano 42 64 1 1
+nova flavor-create m1.nano 42 96 1 1
 #nova flavor-create m1.nano 42 256 3 1
 
 nova flavor-delete 84
@@ -18,6 +13,10 @@ nova flavor-create m1.micro 84 128 2 1
 
 nova flavor-delete 451
 nova flavor-create m1.heat 451 512 5 1
+
+# Add DNS config to the private network
+subnet_id=`neutron net-show private | awk '{if (NR == 13) { print $4}}'`
+neutron subnet-update $subnet_id --dns_nameservers list=true 8.8.8.8 8.8.4.4
 
 TEMPEST_CONFIG=/opt/stack/tempest/etc/tempest.conf
 
