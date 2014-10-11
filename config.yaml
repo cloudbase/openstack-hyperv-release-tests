@@ -1,5 +1,6 @@
 HyperVThreshold_VHDX:
   test_suite: default
+  include_default: false
   devstack:
     live_migration: false
     allow_resize_to_same_host: true
@@ -212,9 +213,12 @@ HyperV2012_VHD_v1:
         hyperv:
           force_hyperv_utils_v1: true
           force_volumeutils_v1: true
+          enable_instance_metrics_collection: false
       neutron_hyperv_agent.conf:
         DEFAULT:
           debug: true
+        AGENT:
+          enable_metrics_collection: false
 HyperV2008r2:
   test_suite: default
   devstack:
