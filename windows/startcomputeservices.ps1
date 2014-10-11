@@ -5,7 +5,9 @@ function Is2012OrAbove() {
 
 function CheckStartService($serviceName) {
     $s = get-service | where {$_.Name -eq $serviceName}
-    if($s -and $s.Status -eq "Stopped") { net start $serviceName }
+    if($s -and $s.Status -eq "Stopped") {
+        Start-Service $serviceName
+    }
 }
 
 if(Is2012OrAbove) {

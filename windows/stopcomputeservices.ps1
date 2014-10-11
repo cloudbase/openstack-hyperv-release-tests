@@ -1,6 +1,8 @@
 function CheckStopService($serviceName) {
     $s = get-service | where {$_.Name -eq $serviceName}
-    if($s -and $s.Status -ne "Stopped") { net stop $serviceName }
+    if($s -and $s.Status -ne "Stopped")  {
+        Stop-Service $serviceName
+    }
 }
 
 CheckStopService nova-compute
