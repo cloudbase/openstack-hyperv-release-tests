@@ -27,6 +27,11 @@ function reboot_win_host() {
     run_wsman_cmd $host "shutdown -r -t 0"
 }
 
+function get_win_hotfixes() {
+    local host=$1
+    run_wsman_cmd $host "wmic qfe list"
+}
+
 function get_win_time() {
     local host=$1
     # Seconds since EPOCH

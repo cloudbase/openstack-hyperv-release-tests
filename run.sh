@@ -43,6 +43,12 @@ function install_compute() {
     echo "OpenStack services installed on: $win_host"
 }
 
+function get_win_hotfixes_log() {
+    local win_host=$1
+    local log_file=$2
+    get_win_hotfixes $win_host > $log_file
+}
+
 function restart_compute_services() {
     local win_host=$1
     echo "Restarting OpenStack services on: $win_host"
@@ -58,7 +64,6 @@ function stop_compute_services() {
 function get_win_host_log_files() {
     local host_name=$1
     local local_dir=$2
-    mkdir -p $local_dir
     get_win_files $host_name "$host_logs_dir" $local_dir
 }
 
@@ -414,6 +419,10 @@ do
     for host_name in ${host_names[@]};
     do
         exec_with_retry 20 15 uninstall_compute $host_name &
+        pids+=("$!")
+
+        mkdir -p "$test_logs_dir/$host_name"
+        exec_with_retry 5 0 get_win_hotfixes_log $host_name "$test_logs_dir/$host_name/hotfixes.log" &
         pids+=("$!")
     done
 
