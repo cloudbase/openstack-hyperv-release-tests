@@ -32,6 +32,11 @@ function get_win_hotfixes() {
     run_wsman_cmd $host "wmic qfe list"
 }
 
+function get_win_system_info() {
+    local host=$1
+    run_wsman_cmd $host "systeminfo"
+}
+
 function get_win_time() {
     local host=$1
     # Seconds since EPOCH

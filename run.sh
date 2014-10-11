@@ -46,7 +46,15 @@ function install_compute() {
 function get_win_hotfixes_log() {
     local win_host=$1
     local log_file=$2
+    echo "Getting hotfixes details for host: $win_host"
     get_win_hotfixes $win_host > $log_file
+}
+
+function get_win_system_info_log() {
+    local win_host=$1
+    local log_file=$2
+    echo "Getting system info for host: $win_host"
+    get_win_system_info $win_host > $log_file
 }
 
 function restart_compute_services() {
@@ -422,6 +430,8 @@ do
         pids+=("$!")
 
         mkdir -p "$test_logs_dir/$host_name"
+        exec_with_retry 5 0 get_win_system_info_log $host_name "$test_logs_dir/$host_name/systeminfo.log" &
+        pids+=("$!")
         exec_with_retry 5 0 get_win_hotfixes_log $host_name "$test_logs_dir/$host_name/hotfixes.log" &
         pids+=("$!")
     done
