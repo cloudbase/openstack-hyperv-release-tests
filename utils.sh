@@ -22,6 +22,11 @@ function run_wsman_ps() {
     run_wsman_cmd $host "powershell -NonInteractive -ExecutionPolicy RemoteSigned -Command $cmd"
 }
 
+function reboot_win_host() {
+    local host=$1
+    run_wsman_cmd $host "shutdown -r -t 0"
+}
+
 function get_win_time() {
     local host=$1
     # Seconds since EPOCH
