@@ -457,4 +457,6 @@ do
     echo "All test logs and config files: $http_test_base_url"
 done
 
+echo "Done!"
+
 exit $has_failed_tests
