@@ -11,7 +11,7 @@ tempest.api.compute.servers.test_attach_interfaces.AttachInterfacesTestJSON.test
 tempest.api.compute.servers.test_attach_interfaces.AttachInterfacesTestXML.test_create_list_show_delete_interfaces
 tempest.scenario.test_network_basic_ops.TestNetworkBasicOps.test_hotplug_nic
 
-# Unsupported consoles
+# Unsupported consoles (Hyper-V uses RDP, not VNC or SPICE)
 tempest.api.compute.v3.servers.test_server_actions.ServerActionsV3Test.test_get_spice_console
 tempest.api.compute.v3.servers.test_server_actions.ServerActionsV3Test.test_get_vnc_console
 
@@ -21,7 +21,7 @@ tempest.api.network.admin.test_dhcp_agent_scheduler.DHCPAgentSchedulersTestXML.t
 tempest.api.network.admin.test_l3_agent_scheduler.L3AgentSchedulerTestXML.
 tempest.api.network.admin.test_agent_management.AgentManagementTestXML.
 
-# Requires changes in the test
+# See Tempest bug: https://bugs.launchpad.net/tempest/+bug/1363986
 tempest.scenario.test_security_groups_basic_ops.TestSecurityGroupsBasicOps.test_cross_tenant_traffic
 
 # Fails on DevStack. Not related to Hyper-V
