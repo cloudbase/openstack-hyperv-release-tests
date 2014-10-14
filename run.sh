@@ -449,6 +449,11 @@ do
         exec_with_retry 15 2 get_win_host_log_files $host_name "$test_logs_dir/$host_name"
     done
 
+    echo "Removing symlinks from logs"
+    find "$test_logs_dir/" -type l -delete
+    echo "Compressing log files"
+    find "$test_logs_dir/" -name "*.log" -exec gzip {} \;
+
     firewall_manage_ports "" del disable ${tcp_ports[@]}
 
     http_test_base_url=$http_base_url/$reports_dir_name/$test_name
