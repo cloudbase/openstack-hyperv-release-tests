@@ -303,6 +303,7 @@ test_reports_base_dir=`realpath $BASEDIR`/reports
 clone_pull_repo $devstack_dir "https://github.com/openstack-dev/devstack.git" $DEVSTACK_BRANCH
 cp local.conf $devstack_dir
 cp local.sh $devstack_dir
+sed -i "s/<%DEVSTACK_SAME_HOST_RESIZE%>/$DEVSTACK_SAME_HOST_RESIZE/g" $devstack_dir/local.conf
 
 add_user_to_passwordless_sudoers $USER 70_devstack_hyperv
 
