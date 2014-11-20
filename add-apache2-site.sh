@@ -17,6 +17,7 @@ Listen 8001
 		AllowOverride None
 		Order allow,deny
 		allow from all
+		Require all granted
 	</Directory>
 </VirtualHost>
 EOF
