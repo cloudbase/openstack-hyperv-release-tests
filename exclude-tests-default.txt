@@ -25,5 +25,5 @@ tempest.api.network.admin.test_agent_management.AgentManagementTestXML.
 tempest.scenario.test_security_groups_basic_ops.TestSecurityGroupsBasicOps.test_cross_tenant_traffic
 
 # Fails on DevStack. Not related to Hyper-V
-tempest.scenario.test_load_balancer_basic.TestLoadBalancerBasic.test_load_balancer_basic[compute,gate,network,smoke]
+tempest.scenario.test_load_balancer_basic.TestLoadBalancerBasic.test_load_balancer_basic[compute,network]
 
