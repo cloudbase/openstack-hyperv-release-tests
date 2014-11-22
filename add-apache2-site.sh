@@ -9,6 +9,9 @@ apache_conf_file=devstack-hyperv-results.conf
 apt-get install -y apache2
 
 cat <<EOF > $apache_sites_available_dir/$apache_conf_file
+# sudo a2enmod headers
+# sudo a2enmod deflate
+
 Listen 8001
 <VirtualHost *:8001>
 	DocumentRoot $results_dir
@@ -18,6 +21,12 @@ Listen 8001
 		Order allow,deny
 		allow from all
 		Require all granted
+
+		AddEncoding gzip gz
+		<FilesMatch "\.gz$">
+			ForceType text/plain
+			Header set Content-Encoding: gzip
+		</FilesMatch>
 	</Directory>
 </VirtualHost>
 EOF
