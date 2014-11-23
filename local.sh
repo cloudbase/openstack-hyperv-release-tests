@@ -4,12 +4,10 @@ set -e
 . ./functions-common
 
 nova flavor-delete 42
-nova flavor-create m1.nano 42 96 1 1
-#nova flavor-create m1.nano 42 256 3 1
+nova flavor-create m1.nano 42 96 3 1
 
 nova flavor-delete 84
-nova flavor-create m1.micro 84 128 2 1
-#nova flavor-create m1.micro 84 300 4 1
+nova flavor-create m1.micro 84 128 4 1
 
 nova flavor-delete 451
 nova flavor-create m1.heat 451 512 5 1

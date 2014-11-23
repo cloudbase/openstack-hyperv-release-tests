@@ -346,6 +346,7 @@ do
 
     unset DEVSTACK_LIVE_MIGRATION
     unset DEVSTACK_SAME_HOST_RESIZE
+    unset DEVSTACK_HEAT_IMAGE_FILE
     unset DEVSTACK_IMAGE_FILE
     unset DEVSTACK_IMAGES_DIR
 
@@ -356,6 +357,11 @@ do
 
     image_url="${devstack_config[image_url]}"
     check_get_image $image_url "$images_dir"
+    export DEVSTACK_IMAGE_FILE=`check_get_image $image_url "$images_dir"`
+
+    heat_image_url="${devstack_config[heat_image_url]}"
+    check_get_image $heat_image_url "$images_dir"
+    export DEVSTACK_HEAT_IMAGE_FILE=`check_get_image $heat_image_url "$images_dir"`
 
     export DEVSTACK_IMAGE_FILE=`check_get_image $image_url "$images_dir"`
     export DEVSTACK_IMAGES_DIR=$images_dir

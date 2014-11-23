@@ -5,6 +5,7 @@ HyperVThreshold_VHDX:
     live_migration: false
     allow_resize_to_same_host: true
     image_url: https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64.vhdx.gz
+    heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhdx.gz
   hosts:
     NUCHVTHTP01:
       nova.conf:
@@ -20,6 +21,7 @@ HyperV2012r2_VHDX:
     live_migration: true
     allow_resize_to_same_host: false
     image_url: https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64.vhdx.gz
+    heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhdx.gz
   hosts:
     NUCHV12R201:
       nova.conf:
@@ -43,6 +45,7 @@ HyperV2012r2_VHDX_fixed:
     live_migration: true
     allow_resize_to_same_host: false
     image_url: https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64-fixed.vhdx.gz
+    heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda-fixed.vhdx.gz
   hosts:
     NUCHV12R201:
       nova.conf:
@@ -66,6 +69,7 @@ HyperV2012r2_VHDX_no_CoW:
     live_migration: true
     allow_resize_to_same_host: false
     image_url: https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64.vhdx.gz
+    heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhdx.gz
   hosts:
     NUCHV12R201:
       nova.conf:
@@ -91,6 +95,7 @@ HyperV2012r2_VHDX_fixed_no_CoW:
     live_migration: true
     allow_resize_to_same_host: false
     image_url: https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64-fixed.vhdx.gz
+    heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda-fixed.vhdx.gz
   hosts:
     NUCHV12R201:
       nova.conf:
@@ -116,6 +121,7 @@ HyperV2012r2_VHD:
     live_migration: true
     allow_resize_to_same_host: false
     image_url: https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64.vhd.gz
+    heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhd.gz
   hosts:
     NUCHV12R201:
       nova.conf:
@@ -139,6 +145,7 @@ HyperV2012r2_VHD_fixed:
     live_migration: true
     allow_resize_to_same_host: false
     image_url: https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64-fixed.vhd.gz
+    heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda-fixed.vhd.gz
   hosts:
     NUCHV12R201:
       nova.conf:
@@ -162,6 +169,7 @@ HyperV2012r2_dynamic_memory:
     live_migration: true
     allow_resize_to_same_host: false
     image_url: https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64.vhdx.gz
+    heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhdx.gz
   hosts:
     NUCHV12R201:
       nova.conf:
@@ -189,6 +197,7 @@ HyperV2012_VHDX:
     live_migration: false
     allow_resize_to_same_host: true
     image_url: https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64.vhdx.gz
+    heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhdx.gz
   hosts:
     NUCHV1201:
       nova.conf:
@@ -204,6 +213,7 @@ HyperV2012_VHD_v1:
     live_migration: false
     allow_resize_to_same_host: true
     image_url: https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64.vhd.gz
+    heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhd.gz
   hosts:
     NUCHV1201:
       nova.conf:
@@ -225,6 +235,7 @@ HyperV2008r2:
     live_migration: false
     allow_resize_to_same_host: true
     image_url: https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64.vhd.gz
+    heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhd.gz
   hosts:
     NUCHV08R201:
       nova.conf:
