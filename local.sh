@@ -4,10 +4,10 @@ set -e
 . ./functions-common
 
 nova flavor-delete 42
-nova flavor-create m1.nano 42 96 3 1
+nova flavor-create m1.nano 42 96 1 1
 
 nova flavor-delete 84
-nova flavor-create m1.micro 84 128 4 1
+nova flavor-create m1.micro 84 128 2 1
 
 nova flavor-delete 451
 nova flavor-create m1.heat 451 512 5 1
@@ -25,4 +25,7 @@ iniset $TEMPEST_CONFIG compute-feature-enabled block_migrate_cinder_iscsi $DEVST
 iniset $TEMPEST_CONFIG scenario img_dir $DEVSTACK_IMAGES_DIR
 iniset $TEMPEST_CONFIG scenario img_file $DEVSTACK_IMAGE_FILE
 iniset $TEMPEST_CONFIG scenario img_disk_format vhd
+
+IMAGE_REF=`iniget $TEMPEST_CONFIG compute image_ref`
+iniset $TEMPEST_CONFIG compute image_ref_alt $IMAGE_REF
 
