@@ -292,7 +292,8 @@ host_config_dir="\${ENV:ProgramFiles(x86)}\\Cloudbase Solutions\\OpenStack\\Nova
 host_logs_dir="/OpenStack/Log"
 devstack_dir="$HOME/devstack"
 images_dir=$devstack_dir
-tempest_dir="/opt/stack/tempest"
+stack_base_dir="/opt/stack"
+tempest_dir="$stack_base_dir/tempest"
 config_file="config.yaml"
 max_parallel_tests=8
 max_attempts=5
@@ -301,6 +302,7 @@ tcp_ports=(5672 5000 9292 9696 35357)
 test_reports_base_dir=`realpath $BASEDIR`/reports
 
 clone_pull_repo $devstack_dir "https://github.com/openstack-dev/devstack.git" $DEVSTACK_BRANCH
+pull_all_git_repos $stack_base_dir $DEVSTACK_BRANCH
 
 add_user_to_passwordless_sudoers $USER 70_devstack_hyperv
 

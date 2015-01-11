@@ -205,3 +205,26 @@ function add_user_to_passwordless_sudoers() {
         sudo sh -c "echo $user_name 'ALL=(ALL) NOPASSWD:ALL' > $path && chmod 440 $path"
     fi
 }
+
+function pull_all_git_repos() {
+    local parent_dir=$1
+    local branch_name=$2
+    local remote_name=origin
+
+    for d in $parent_dir/*/; do
+        if [ -d "$d/.git" ]; then
+            pushd .
+            echo $d
+            cd $d
+            if [[ `git branch --list $branch_name` ]]; then
+                local repo_branch_name=$branch_name
+            else
+                local repo_branch_name=master
+            fi
+            git fetch $remote_name
+            git checkout $repo_branch_name
+            git pull $remote_name $repo_branch_name
+            popd
+        fi
+    done
+}
