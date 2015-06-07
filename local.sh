@@ -1,7 +1,12 @@
 #!/bin/bash
 set -e
 
-. ./functions-common
+BASEDIR=$(dirname $0)
+if [ -f "$BASEDIR/inc/ini-config" ]; then
+    . $BASEDIR/inc/ini-config
+else
+    . $BASEDIR/functions-common
+fi
 
 nova flavor-delete 42
 nova flavor-create m1.nano 42 96 1 1
@@ -13,7 +18,7 @@ nova flavor-delete 451
 nova flavor-create m1.heat 451 512 5 1
 
 # Add DNS config to the private network
-subnet_id=`neutron net-show private | awk '{if (NR == 13) { print $4}}'`
+subnet_id=`neutron net-show -c subnets private | awk '{if (NR == 4) { print $4}}'`
 neutron subnet-update $subnet_id --dns_nameservers list=true 8.8.8.8 8.8.4.4
 
 TEMPEST_CONFIG=/opt/stack/tempest/etc/tempest.conf
