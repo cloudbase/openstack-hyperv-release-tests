@@ -11,6 +11,8 @@ BASEDIR=$(dirname $0)
 
 . $BASEDIR/utils.sh
 
+pip install -r "$tests_dir/requirements.txt"
+
 tests_file=$(tempfile)
 $BASEDIR/get-tests.sh $tests_dir $test_suite > $tests_file
 

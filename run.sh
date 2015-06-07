@@ -257,6 +257,15 @@ function setup_compute_host() {
     done
 }
 
+function enable_venv() {
+    local venvdir=$1
+
+    if [ ! -d "$venvdir" ]; then
+        virtualenv $venvdir
+    fi
+    source "$venvdir/bin/activate"
+}
+
 msi_url=$1
 DEVSTACK_BRANCH=${2:-"stable/icehouse"}
 test_suite_override=${3}
@@ -414,6 +423,8 @@ do
         test_suite=`get_config_test_test_suite $test_name`
     fi
 
+    enable_venv "$tempest_dir/.venv"
+
     echo "Running Tempest tests: $test_suite"
     subunit_log_file="$test_reports_dir/subunit-output.log"
     html_results_file="$test_reports_dir/results.html"
@@ -421,6 +432,9 @@ do
         $test_suite "$subunit_log_file" "$html_results_file" \
         > $test_logs_dir/out.txt 2> $test_logs_dir/err.txt \
         || has_failed_tests=1
+
+    # Exit venv
+    deactivate
 
     subunit-stats --no-passthrough "$subunit_log_file" || true
 
