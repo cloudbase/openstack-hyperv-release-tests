@@ -160,6 +160,9 @@ function stack_devstack() {
     cd $devstack_dir
     echo "Running unstack.sh"
     ./unstack.sh > /dev/null 2>&1 || true
+
+    rm -rf $stack_base_dir/*.venv
+
     echo "Running stack.sh"
     ./stack.sh > "$log_dir/devstack_stack.txt" 2> "$log_dir/devstack_stack_err.txt" || ret_val=$?
     echo "stack.sh - exit code: $ret_val"
