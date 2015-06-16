@@ -1,6 +1,6 @@
 function Is2012OrAbove() {
     $v = [environment]::OSVersion.Version
-    return ($v.Major -ge 6 -and $v.Minor -ge 2)
+    return ($v.Major -gt 6 -or ($v.Major -ge 6 -and $v.Minor -ge 2))
 }
 
 function CheckStartService($serviceName) {
