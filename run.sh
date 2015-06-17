@@ -413,9 +413,9 @@ do
         exec_with_retry 5 10 restart_compute_services $host_name
 
         echo "Checking if nova-compute is active on: $host_name"
-        exec_with_retry 30 2 check_nova_service_up $host_name
+        exec_with_retry 60 2 check_nova_service_up $host_name
         echo "Checking if neutron Hyper-V agent is active on: $host_name"
-        exec_with_retry 30 2 check_neutron_agent_up $host_name
+        exec_with_retry 60 2 check_neutron_agent_up $host_name
     done
 
     exec_with_retry 30 2 check_host_services_count ${#host_names[@]}
