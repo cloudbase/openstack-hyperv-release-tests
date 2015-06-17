@@ -31,6 +31,8 @@ HyperV2012r2_VHDX:
       neutron_hyperv_agent.conf:
         DEFAULT:
           debug: true
+        SECURITYGROUP:
+          enable_security_group: true
     NUCHV12R202:
       nova.conf:
         DEFAULT:
@@ -39,6 +41,8 @@ HyperV2012r2_VHDX:
       neutron_hyperv_agent.conf:
         DEFAULT:
           debug: true
+        SECURITYGROUP:
+          enable_security_group: true
 HyperV2012r2_VHDX_fixed:
   test_suite: images
   devstack:
