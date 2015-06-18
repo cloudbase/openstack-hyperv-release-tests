@@ -6,7 +6,8 @@ tempest.api.compute.servers.test_server_rescue_negative.ServerRescueNegativeTest
 tempest.api.compute.v3.servers.test_server_rescue.ServerRescueV3Test.
 tempest.api.compute.v3.servers.test_server_rescue_negative.ServerRescueNegativeV3Test.
 
-# Hyper-V does not support attaching vNics to a running instance 
+# Hyper-V does not support attaching vNics to a running instance before Threshold
+# On Threshold it is supported, requiring Generation 2 
 tempest.api.compute.servers.test_attach_interfaces.AttachInterfacesTestJSON.test_create_list_show_delete_interfaces
 tempest.api.compute.servers.test_attach_interfaces.AttachInterfacesTestXML.test_create_list_show_delete_interfaces
 tempest.scenario.test_network_basic_ops.TestNetworkBasicOps.test_hotplug_nic
@@ -23,6 +24,7 @@ tempest.api.network.admin.test_agent_management.AgentManagementTestXML.
 
 # See Tempest bug: https://bugs.launchpad.net/tempest/+bug/1363986
 tempest.scenario.test_security_groups_basic_ops.TestSecurityGroupsBasicOps.test_cross_tenant_traffic
+tempest.scenario.test_security_groups_basic_ops.TestSecurityGroupsBasicOps.test_multiple_security_groups
 
 # Fails on DevStack. Not related to Hyper-V
 tempest.scenario.test_load_balancer_basic.TestLoadBalancerBasic.test_load_balancer_basic
