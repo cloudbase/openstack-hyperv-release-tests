@@ -32,7 +32,7 @@ HyperVThreshold_NIC_hotplug:
       neutron_hyperv_agent.conf:
         DEFAULT:
           debug: true
-       SECURITYGROUP:
+        SECURITYGROUP:
           enable_security_group: true
 HyperV2012r2_VHDX:
   test_suite: default
