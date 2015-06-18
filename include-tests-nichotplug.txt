@@ -1,0 +1,4 @@
+tempest.api.compute.servers.test_attach_interfaces.AttachInterfacesTestJSON.test_create_list_show_delete_interfaces
+tempest.api.compute.servers.test_attach_interfaces.AttachInterfacesTestXML.test_create_list_show_delete_interfaces
+tempest.scenario.test_network_basic_ops.TestNetworkBasicOps.test_hotplug_nic
+
