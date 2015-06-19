@@ -1,11 +1,3 @@
-# Rescue (to be removed when the feature is added)
-tempest.api.compute.servers.test_server_rescue.ServerRescueTestJSON.
-tempest.api.compute.servers.test_server_rescue.ServerRescueTestXML.
-tempest.api.compute.servers.test_server_rescue_negative.ServerRescueNegativeTestJSON.
-tempest.api.compute.servers.test_server_rescue_negative.ServerRescueNegativeTestXML.
-tempest.api.compute.v3.servers.test_server_rescue.ServerRescueV3Test.
-tempest.api.compute.v3.servers.test_server_rescue_negative.ServerRescueNegativeV3Test.
-
 # Hyper-V does not support attaching vNics to a running instance before Threshold
 # On Threshold it is supported, requiring Generation 2 
 tempest.api.compute.servers.test_attach_interfaces.AttachInterfacesTestJSON.test_create_list_show_delete_interfaces
