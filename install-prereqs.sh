@@ -20,4 +20,5 @@ sudo pip install -U pymongo
 # TODO The following needs to be added after stack.sh and before Tempest runs
 # sudo ovs-vsctl add-br br-eth1
 # ovs-vsctl add-port br-eth1 eth1
+# The following is needed only if external access is required from OpenStack VMs
 # sudo ovs-vsctl add-port br-ex eth2
