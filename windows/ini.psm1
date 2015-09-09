@@ -74,7 +74,7 @@ function Get-IniFileValue
             $lastErr = [PSCloudbase.Win32IniApi]::GetLastError()
             if ($lastErr -ne 2)
             {
-                throw "Cannot get value from ini file: " + [PSCloudbase.Win32IniApi]::GetLastError()
+                throw "Cannot get value for '" + $Key + "' from ini file: " + [PSCloudbase.Win32IniApi]::GetLastError()
             }
             elseif (!(Test-Path $Path))
             {
@@ -107,7 +107,7 @@ function Set-IniFileValue
         $retVal = [PSCloudbase.Win32IniApi]::WritePrivateProfileString($Section, $Key, $Value, $Path)
         if (!$retVal -and [PSCloudbase.Win32IniApi]::GetLastError())
         {
-            throw "Cannot set value in ini file: " + [PSCloudbase.Win32IniApi]::GetLastError()
+            throw "Cannot set key '" + $Key + "' to '" + $Value + "' in ini file: " + [PSCloudbase.Win32IniApi]::GetLastError()
         }
     }
 }
@@ -131,7 +131,7 @@ function Remove-IniFileValue
         $retVal = [PSCloudbase.Win32IniApi]::WritePrivateProfileString($Section, $Key, $null, $Path)
         if (!$retVal -and [PSCloudbase.Win32IniApi]::GetLastError())
         {
-            throw "Cannot remove value from ini file: " + [PSCloudbase.Win32IniApi]::GetLastError()
+            throw "Cannot remove value for '" + $Key + "' from ini file: " + [PSCloudbase.Win32IniApi]::GetLastError()
         }
     }
 }
