@@ -225,6 +225,8 @@ function pull_all_git_repos() {
             fi
             git fetch $remote_name
             git checkout $repo_branch_name
+            git reset --hard
+            git clean -f -d
             git pull $remote_name $repo_branch_name
             popd
         fi
