@@ -71,6 +71,8 @@ function clone_pull_repo() {
     if [ -d "$repo_dir/.git" ]; then
         cd $repo_dir
         git checkout $repo_branch
+        git reset --hard
+        git clean -f -d
         git pull
     else
         cd `dirname $repo_dir`
