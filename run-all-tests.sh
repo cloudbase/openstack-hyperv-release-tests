@@ -26,6 +26,8 @@ if [ ! -d "$tests_dir/.testrepository" ]; then
     pop_dir
 fi
 
+touch $log_file
+
 $BASEDIR/parallel-test-runner.sh $tests_file $tests_dir $log_file \
     $parallel_tests $max_attempts || true
 
