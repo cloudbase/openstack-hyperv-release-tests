@@ -26,7 +26,7 @@ If  (Test-Path $instancesDir) {
     rmdir $instancesDir -Recurse -Force
 }
 
-$log_files = @("nova-compute.log", "neutron-hyperv-agent.log", "ceilometer-agent-compute.log")
+$log_files = @("nova-compute.log", "neutron-hyperv-agent.log", "ceilometer-polling.log")
 foreach($log_file in $log_files) {
     $log_path = Join-Path "C:\OpenStack\Log\" $log_file
     if(Test-Path $log_path) {
@@ -36,4 +36,4 @@ foreach($log_file in $log_files) {
 
 CheckStartService nova-compute
 CheckStartService neutron-hyperv-agent
-CheckStartService ceilometer-agent-compute
+CheckStartService ceilometer-polling

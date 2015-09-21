@@ -7,4 +7,4 @@ function CheckStopService($serviceName) {
 
 CheckStopService nova-compute
 CheckStopService neutron-hyperv-agent
-CheckStopService ceilometer-agent-compute
+CheckStopService ceilometer-polling
