@@ -70,7 +70,7 @@ function clone_pull_repo() {
     push_dir
     if [ -d "$repo_dir/.git" ]; then
         cd $repo_dir
-        git fetch --all
+        git fetch origin $repo_branch
         git checkout $repo_branch
         git reset --hard
         git clean -f -d
