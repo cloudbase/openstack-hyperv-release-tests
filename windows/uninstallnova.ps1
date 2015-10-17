@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-$products = gwmi Win32_Product -filter "Vendor = 'Cloudbase Solutions Srl'" | where {$_.Caption.StartsWith('OpenStack Hyper-V Nova Compute')}
+$products = gwmi Win32_Product -filter "Vendor = 'Cloudbase Solutions Srl'" | where {$_.Caption.StartsWith('OpenStack Hyper-V ')}
 if ($products) {
     $msi_log_path="C:\OpenStack\Log\uninstall_log.txt"
     $log_dir = split-path $msi_log_path

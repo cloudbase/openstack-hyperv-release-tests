@@ -7,7 +7,7 @@ Param(
  $ErrorActionPreference = "Stop"
 [Environment]::CurrentDirectory = $pwd
 
-$products = gwmi Win32_Product -filter "Vendor = 'Cloudbase Solutions Srl'" | where {$_.Caption.StartsWith('OpenStack Hyper-V Nova Compute')}
+$products = gwmi Win32_Product -filter "Vendor = 'Cloudbase Solutions Srl'" | where {$_.Caption.StartsWith('OpenStack Hyper-V ')}
 if ($products) {
     Write-Host "Product already installed"
     exit 0
