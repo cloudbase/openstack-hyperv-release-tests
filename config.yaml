@@ -256,6 +256,7 @@ HyperV2012_VHD_v1:
           enable_metrics_collection: false
 HyperV2008r2:
   test_suite: 2008r2
+  include_default: false
   devstack:
     live_migration: false
     allow_resize_to_same_host: true
