@@ -99,6 +99,13 @@ function CreateWinRMHttpsFirewallRule() {
     if ($LastExitCode) { throw "Failed to setup WinRM HTTPS firewall rules" }
 }
 
+function SetNetConnectionProfiles() {
+    foreach($cp in Get-NetConnectionProfile | ? {$_.NetworkCategory -eq "Public"}) {
+        $cp.NetworkCategory = "Private"
+        $cp | Set-NetConnectionProfile
+    }
+}
+
 $certFilePfx = "server_cert.p12"
 $pfxPassword = "Passw0rd"
 
@@ -114,6 +121,8 @@ GenerateSelfSignedCertificate $certFilePfx $pfxPassword
 $certThumbprint = ImportCertificate $certFilePfx $pfxPassword
 
 del $certFilePfx
+
+SetNetConnectionProfiles
 
 RemoveExistingWinRMHttpsListener
 
