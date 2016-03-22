@@ -78,12 +78,12 @@ $msiArgs = "/i $msi /qn /l*v $msiLogPath " + `
 "NEUTRONADMINTENANTNAME=service " +
 "NEUTRONADMINUSERNAME=neutron " +
 "NEUTRONADMINPASSWORD=$Password " +
-"NEUTRONADMINAUTHURL=http://${DevstackHost}:35357/v2.0 " +
+"NEUTRONADMINAUTHURL=http://${DevstackHost}:35357/v3 " +
 
 "CEILOMETERADMINTENANTNAME=service " +
 "CEILOMETERADMINUSERNAME=ceilometer " +
 "CEILOMETERADMINPASSWORD=$Password " +
-"CEILOMETERADMINAUTHURL=http://${DevstackHost}:35357/v2.0 "
+"CEILOMETERADMINAUTHURL=http://${DevstackHost}:35357/v3 "
 
 if ($domainName -and $features -ccontains "LiveMigration") {
     $msiArgs += "LIVEMIGRAUTHTYPE=1 " +
