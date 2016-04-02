@@ -228,6 +228,7 @@ function pull_all_git_repos() {
             git checkout $repo_branch_name
             git reset --hard
             git clean -f -d
+            find . -name *.pyc -delete
             git pull $remote_name $repo_branch_name
             popd
         fi
