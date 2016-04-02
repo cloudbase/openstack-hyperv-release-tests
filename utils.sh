@@ -219,7 +219,7 @@ function pull_all_git_repos() {
             pushd .
             echo $d
             cd $d
-            if [[ `git branch --list $branch_name` ]]; then
+            if [[ `git branch -r --list $remote_name/$branch_name` ]]; then
                 local repo_branch_name=$branch_name
             else
                 local repo_branch_name=master
