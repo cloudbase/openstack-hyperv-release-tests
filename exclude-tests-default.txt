@@ -1,9 +1,3 @@
-# Hyper-V does not support attaching vNics to a running instance before Threshold
-# On Threshold it is supported, requiring Generation 2 
-tempest.api.compute.servers.test_attach_interfaces.AttachInterfacesTestJSON.test_create_list_show_delete_interfaces
-tempest.api.compute.servers.test_attach_interfaces.AttachInterfacesTestXML.test_create_list_show_delete_interfaces
-tempest.scenario.test_network_basic_ops.TestNetworkBasicOps.test_hotplug_nic
-
 # Unsupported consoles (Hyper-V uses RDP, not VNC or SPICE)
 tempest.api.compute.v3.servers.test_server_actions.ServerActionsV3Test.test_get_spice_console
 tempest.api.compute.v3.servers.test_server_actions.ServerActionsV3Test.test_get_vnc_console
