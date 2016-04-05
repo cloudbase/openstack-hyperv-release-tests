@@ -360,6 +360,7 @@ do
 
     unset DEVSTACK_LIVE_MIGRATION
     unset DEVSTACK_SAME_HOST_RESIZE
+    unset DEVSTACK_INTERFACE_ATTACH
     unset DEVSTACK_HEAT_IMAGE_FILE
     unset DEVSTACK_IMAGE_FILE
     unset DEVSTACK_IMAGES_DIR
@@ -368,6 +369,7 @@ do
     eval "devstack_config=(`get_config_test_devstack $test_name`)"
     export DEVSTACK_LIVE_MIGRATION=${devstack_config[live_migration]}
     export DEVSTACK_SAME_HOST_RESIZE=${devstack_config[allow_resize_to_same_host]}
+    export DEVSTACK_INTERFACE_ATTACH=false
 
     image_url="${devstack_config[image_url]}"
     check_get_image $image_url "$images_dir"
