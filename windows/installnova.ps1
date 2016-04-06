@@ -57,7 +57,7 @@ $msiArgs = "/i $msi /qn /l*v $msiLogPath " + `
 "GLANCEHOST=$DevstackHost " +
 "RPCBACKEND=RabbitMQ " +
 "RPCBACKENDHOST=$DevstackHost " +
-"RPCBACKENDUSER=stackrabbit" +
+"RPCBACKENDUSER=stackrabbit " +
 "RPCBACKENDPASSWORD=Passw0rd " +
 
 "INSTANCESPATH=C:\OpenStack\Instances " +
