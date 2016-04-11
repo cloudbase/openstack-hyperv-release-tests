@@ -55,7 +55,7 @@ $msiArgs = "/i $msi /qn /l*v $msiLogPath " + `
 "ADDLOCAL=" + ($features -join ",") + " " +
 
 "INSTALLDIR=C:\OpenStack\cloudbase\nova " +
-"GLANCEHOST=$DevstackHost " +
+"GLANCEHOST=http://$DevstackHost " +
 "RPCBACKEND=RabbitMQ " +
 "RPCBACKENDHOST=$DevstackHost " +
 "RPCBACKENDUSER=stackrabbit " +
