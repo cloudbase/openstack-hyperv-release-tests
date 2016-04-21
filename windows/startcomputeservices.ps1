@@ -23,7 +23,7 @@ else {
 
 $instancesDir = "C:\OpenStack\Instances"
 If  (Test-Path $instancesDir) {
-    rmdir $instancesDir -Recurse -Force
+    rmdir "${instancesDir}\*" -Recurse -Force
 }
 
 $log_files = @("nova-compute.log", "neutron-hyperv-agent.log", "ceilometer-polling.log")
