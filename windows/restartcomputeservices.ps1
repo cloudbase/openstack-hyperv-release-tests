@@ -1,2 +1,6 @@
-.\stopcomputeservices.ps1
-.\startcomputeservices.ps1
+Param (
+      [String]$NeutronAgent = $(throw "-NeutronAgent is required.")
+)
+
+.\stopcomputeservices.ps1 -NeutronAgent $NeutronAgent
+.\startcomputeservices.ps1 -NeutronAgent $NeutronAgent

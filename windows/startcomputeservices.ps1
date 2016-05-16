@@ -1,3 +1,7 @@
+Param (
+      [String]$NeutronAgent = $(throw "-NeutronAgent is required.")
+)
+
 function Is2012OrAbove() {
     $v = [environment]::OSVersion.Version
     return ($v.Major -gt 6 -or ($v.Major -ge 6 -and $v.Minor -ge 2))
@@ -26,7 +30,7 @@ If  (Test-Path $instancesDir) {
     rmdir "${instancesDir}\*" -Recurse -Force
 }
 
-$log_files = @("nova-compute.log", "neutron-hyperv-agent.log", "ceilometer-polling.log")
+$log_files = @("nova-compute.log", "neutron-hyperv-agent.log", "neutron-ovs-agent.log", "ceilometer-polling.log")
 foreach($log_file in $log_files) {
     $log_path = Join-Path "C:\OpenStack\Log\" $log_file
     if(Test-Path $log_path) {
@@ -35,5 +39,5 @@ foreach($log_file in $log_files) {
 }
 
 CheckStartService nova-compute
-CheckStartService neutron-hyperv-agent
+CheckStartService $NeutronAgent
 CheckStartService ceilometer-polling

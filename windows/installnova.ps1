@@ -1,7 +1,8 @@
 Param(
   [string]$DevstackHost = $(throw "-DevstackHost is required."),
   [string]$Password = $(throw "-Password is required."),
-  [string]$MSIUrl = $(throw "-MSIUrl is required.")
+  [string]$MSIUrl = $(throw "-MSIUrl is required."),
+  [boolean]$UseOvs = $false
  )
 
  $ErrorActionPreference = "Stop"
@@ -106,3 +107,19 @@ $p = Start-Process -Wait "msiexec.exe" -ArgumentList $msiArgs -PassThru
 if($p.ExitCode) { throw "msiexec failed" }
 
 Write-Host """$msi"" installed successfully"
+
+if ($UseOvs) {
+    # we need to stop the neutron hyper-v agent since we will be using ovs
+    $s = Get-Service neutron-hyperv-agent
+    if ($s) {
+        Stop-Service $s
+    }
+    Write-Host "Setting up ovs-agent service"
+    cmd.exe /c .\create_ovs_service.cmd
+    cp .\neutron_ovs_agent.conf "C:\OpenStack\cloudbase\nova\etc\."
+
+    Import-Module .\ini.psm1
+    Set-IniFileValue -Path "C:\OpenStack\cloudbase\nova\etc\neutron_ovs_agent.conf" -Section "DEFAULT" -Key "rabbit_host" -Value $DevstackHost
+
+    Write-Host "Ovs-agent set up complete"
+}

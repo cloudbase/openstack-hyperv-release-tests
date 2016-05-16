@@ -38,8 +38,9 @@ function install_compute() {
     local devstack_host=$2
     local password=$3
     local msi_url=$4
+    local use_ovs=$5
     echo "Installing OpenStack services on: $win_host"
-    run_wsman_ps $win_host "cd $repo_dir\\windows; .\\installnova.ps1 -DevstackHost $devstack_host -Password $password -MSIUrl $msi_url"
+    run_wsman_ps $win_host "cd $repo_dir\\windows; .\\installnova.ps1 -DevstackHost $devstack_host -Password $password -MSIUrl $msi_url -UseOvs \$$use_ovs"
     echo "OpenStack services installed on: $win_host"
 }
 
@@ -59,14 +60,16 @@ function get_win_system_info_log() {
 
 function restart_compute_services() {
     local win_host=$1
+    local neutron_service=$2
     echo "Restarting OpenStack services on: $win_host"
-    run_wsman_ps $win_host "cd $repo_dir\\windows; .\\restartcomputeservices.ps1"
+    run_wsman_ps $win_host "cd $repo_dir\\windows; .\\restartcomputeservices.ps1 -NeutronAgent $neutron_service"
 }
 
 function stop_compute_services() {
     local win_host=$1
+    local neutron_service=$2
     echo "Stopping OpenStack services on: $win_host"
-    run_wsman_ps $win_host "cd $repo_dir\\windows; .\\stopcomputeservices.ps1"
+    run_wsman_ps $win_host "cd $repo_dir\\windows; .\\stopcomputeservices.ps1 -NeutronAgent $neutron_service"
 }
 
 function get_win_host_log_files() {
@@ -153,6 +156,14 @@ print ' '.join(['[%(k)s]=%(v)s' % {'k': k, 'v': v} for (k,v) in
                config[\"$test_name\"]['hosts'][\"$host_name\"][\"$host_config_file\"][\"$section_name\"].items()])"
 }
 
+function get_config_use_ovs() {
+    local test_name=$1
+    cat $config_file | python -c "import yaml;
+import sys;
+config=yaml.load(sys.stdin);
+print config[\"$test_name\"].get('use_ovs', False)"
+}
+
 function stack_devstack() {
     local log_dir=$1
     local ret_val=0
@@ -186,6 +197,7 @@ function unstack_devstack() {
 
 function check_host_services_count() {
     local expected_hosts_count=$1
+    local neutron_agent_type=$2
 
     local nova_compute_hosts=`get_nova_service_hosts | wc -l`
     if [ $expected_hosts_count -ne $nova_compute_hosts ]; then
@@ -193,8 +205,10 @@ function check_host_services_count() {
         return 1
     fi
 
-    local hyperv_agent_hosts=`get_neutron_agent_hosts | wc -l`
-    if [ $expected_hosts_count -ne $hyperv_agent_hosts ]; then
+    local hyperv_agent_hosts=`get_neutron_agent_hosts "$neutron_agent_type" | wc -l`
+    # we error out only if we have less than the expected number of agent hosts. In case we use
+    # ovs neutron agent, we will have an extra agent on the controller.
+    if [ $expected_hosts_count -gt $hyperv_agent_hosts ]; then
         echo "Current active neutron Hyper-V agents:  $hyperv_agent_hosts expected: ${#host_names[@]}"
         return 1
     fi
@@ -234,6 +248,7 @@ function check_host_time() {
 function setup_compute_host() {
     local test_name=$1
     local host_name=$2
+    local use_ovs=$3
 
     echo "Configuring host: $host_name"
 
@@ -242,7 +257,7 @@ function setup_compute_host() {
 
     exec_with_retry 15 2 setup_win_host $host_name
     exec_with_retry 20 15 uninstall_compute $host_name
-    exec_with_retry 20 15 install_compute $host_name $DEVSTACK_IP_ADDR "$DEVSTACK_PASSWORD" $msi_url
+    exec_with_retry 20 15 install_compute $host_name $DEVSTACK_IP_ADDR "$DEVSTACK_PASSWORD" $msi_url $use_ovs
 
     host_config_files=(`get_config_test_host_config_files $test_name $host_name`)
     for host_config_file in ${host_config_files[@]};
@@ -392,14 +407,27 @@ do
     cp local.sh $devstack_dir
     sed -i "s/<%DEVSTACK_SAME_HOST_RESIZE%>/$DEVSTACK_SAME_HOST_RESIZE/g" $devstack_dir/local.conf
 
+    if [ -n ${devstack_config[Q_ML2_TENANT_NETWORK_TYPE]} ]; then
+        sed -i "s/Q_ML2_TENANT_NETWORK_TYPE=.*/Q_ML2_TENANT_NETWORK_TYPE=${devstack_config[Q_ML2_TENANT_NETWORK_TYPE]}/g" $devstack_dir/local.conf
+    fi
+
+    if [ -n ${devstack_config[OVS_ENABLE_TUNNELING]} ]; then
+        sed -i "s/OVS_ENABLE_TUNNELING=.*/OVS_ENABLE_TUNNELING=${devstack_config[OVS_ENABLE_TUNNELING]}/g" $devstack_dir/local.conf
+    fi
+
+    if [ -n ${devstack_config[TUNNEL_ENDPOINT_IP]} ]; then
+        sed -i "/OVS_ENABLE_TUNNELING/ a TUNNEL_ENDPOINT_IP=${devstack_config[TUNNEL_ENDPOINT_IP]}" $devstack_dir/local.conf
+    fi
+
     pids=()
     exec_with_retry 5 0 stack_devstack $DEVSTACK_LOGS_DIR &
     pids+=("$!")
 
     host_names=(`get_config_test_hosts $test_name`)
+    use_ovs=(`get_config_use_ovs $test_name`)
     for host_name in ${host_names[@]};
     do
-        setup_compute_host $test_name $host_name &
+        setup_compute_host $test_name $host_name $use_ovs &
         pids+=("$!")
     done
 
@@ -408,19 +436,27 @@ do
         wait $pid
     done
 
+    if [ "$use_ovs" = True ]; then
+        neutron_agent_type="Open vSwitch agent"
+        neutron_service="neutron-ovs-agent"
+    else
+        neutron_agent_type="HyperV agent"
+        neutron_service="neutron-hyperv-agent"
+    fi
+
     for host_name in ${host_names[@]};
     do
         firewall_manage_ports $host_name add enable ${tcp_ports[@]}
 
-        exec_with_retry 5 10 restart_compute_services $host_name
+        exec_with_retry 5 10 restart_compute_services $host_name $neutron_service
 
         echo "Checking if nova-compute is active on: $host_name"
         exec_with_retry 60 2 check_nova_service_up $host_name
         echo "Checking if neutron Hyper-V agent is active on: $host_name"
-        exec_with_retry 60 2 check_neutron_agent_up $host_name
+        exec_with_retry 60 2 check_neutron_agent_up $host_name \"$neutron_agent_type\"
     done
 
-    exec_with_retry 30 2 check_host_services_count ${#host_names[@]}
+    exec_with_retry 30 2 check_host_services_count ${#host_names[@]} \"$neutron_agent_type\"
 
     if [ $test_suite_override ]; then
         test_suite=$test_suite_override
@@ -447,7 +483,7 @@ do
 
     for host_name in ${host_names[@]};
     do
-        exec_with_retry 5 10 stop_compute_services $host_name
+        exec_with_retry 5 10 stop_compute_services $host_name $neutron_service
         firewall_manage_ports $host_name del enable ${tcp_ports[@]}
         exec_with_retry 15 2 get_win_host_config_files $host_name "$test_config_dir/$host_name"
     done

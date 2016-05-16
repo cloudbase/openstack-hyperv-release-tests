@@ -1,5 +1,17 @@
 $ErrorActionPreference = "Stop"
 
+$s = get-service | where {$_.Name -eq "neutron-ovs-agent"}
+if ($s) {
+    stop-service $s
+    sc.exe delete neutron-ovs-agent
+
+    # if ovs was used we will also want to delete the bridges created
+    # by the agent to ensure a clean env for the next run.
+
+    ovs-vsctl --if-exists del-br br-tun
+    ovs-vsctl --if-exists del-br br-int
+}
+
 $products = gwmi Win32_Product -filter "Vendor = 'Cloudbase Solutions Srl'" | where {$_.Caption.StartsWith('OpenStack Hyper-V ')}
 if ($products) {
     $msi_log_path="C:\OpenStack\Log\uninstall_log.txt"
