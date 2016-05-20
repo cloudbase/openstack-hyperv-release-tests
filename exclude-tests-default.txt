@@ -11,3 +11,6 @@ tempest.scenario.test_security_groups_basic_ops.TestSecurityGroupsBasicOps.test_
 
 # current version of cirros does not have the ping6 command.
 tempest.scenario.test_network_v6.TestGettingAddress
+
+# exclude tests due to bug: https://bugs.launchpad.net/tempest/+bug/1582730
+tempest.api.compute.volumes.test_attach_volume.AttachVolumeShelveTestJSON
