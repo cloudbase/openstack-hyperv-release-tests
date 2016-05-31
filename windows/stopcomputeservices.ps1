@@ -1,3 +1,7 @@
+Param (
+      [String]$NeutronAgent = $(throw "-NeutronAgent is required.")
+)
+
 function CheckStopService($serviceName) {
     $s = get-service | where {$_.Name -eq $serviceName}
     if($s -and $s.Status -ne "Stopped")  {
@@ -6,5 +10,5 @@ function CheckStopService($serviceName) {
 }
 
 CheckStopService nova-compute
-CheckStopService neutron-hyperv-agent
+CheckStopService $NeutronAgent
 CheckStopService ceilometer-polling
