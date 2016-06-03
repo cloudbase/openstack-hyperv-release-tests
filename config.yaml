@@ -1,4 +1,4 @@
-HyperVThreshold_VHDX:
+HyperV2016_VHDX:
   test_suite: default
   include_default: false
   devstack:
@@ -17,7 +17,7 @@ HyperVThreshold_VHDX:
           debug: true
         SECURITYGROUP:
           enable_security_group: true          
-HyperVThreshold_NIC_hotplug:
+HyperV2016_NIC_hotplug:
   test_suite: nichotplug
   include_default: false
   devstack:
@@ -271,7 +271,7 @@ HyperV2008r2:
       neutron_hyperv_agent.conf:
         DEFAULT:
           debug: true
-HyperVThreshold_OVS_VXLAN_VHDX:
+HyperV2016_OVS_VXLAN_VHDX:
   use_ovs: true
   test_suite: default
   devstack:
