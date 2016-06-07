@@ -407,15 +407,15 @@ do
     cp local.sh $devstack_dir
     sed -i "s/<%DEVSTACK_SAME_HOST_RESIZE%>/$DEVSTACK_SAME_HOST_RESIZE/g" $devstack_dir/local.conf
 
-    if [ -n ${devstack_config[Q_ML2_TENANT_NETWORK_TYPE]} ]; then
+    if [ -n "${devstack_config[Q_ML2_TENANT_NETWORK_TYPE]}" ]; then
         sed -i "s/Q_ML2_TENANT_NETWORK_TYPE=.*/Q_ML2_TENANT_NETWORK_TYPE=${devstack_config[Q_ML2_TENANT_NETWORK_TYPE]}/g" $devstack_dir/local.conf
     fi
 
-    if [ -n ${devstack_config[OVS_ENABLE_TUNNELING]} ]; then
+    if [ -n "${devstack_config[OVS_ENABLE_TUNNELING]}" ]; then
         sed -i "s/OVS_ENABLE_TUNNELING=.*/OVS_ENABLE_TUNNELING=${devstack_config[OVS_ENABLE_TUNNELING]}/g" $devstack_dir/local.conf
     fi
 
-    if [ -n ${devstack_config[TUNNEL_ENDPOINT_IP]} ]; then
+    if [ -n "${devstack_config[TUNNEL_ENDPOINT_IP]}" ]; then
         sed -i "/OVS_ENABLE_TUNNELING/ a TUNNEL_ENDPOINT_IP=${devstack_config[TUNNEL_ENDPOINT_IP]}" $devstack_dir/local.conf
     fi
 
