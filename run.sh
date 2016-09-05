@@ -389,6 +389,10 @@ do
     cp local.conf $devstack_dir
     cp local.sh $devstack_dir
     sed -i "s/<%DEVSTACK_SAME_HOST_RESIZE%>/$DEVSTACK_SAME_HOST_RESIZE/g" $devstack_dir/local.conf
+    
+    # NOTE(claudiub): some projects might have some changes done locally, meaning that the branch
+    # can't be switched easily. This command will hard-reset and clean every git repo in /opt/stack/
+    find /opt/stack/ -type d -maxdepth 1 -mindepth 1 -execdir sh -c 'cd $0; git reset --hard && git clean -f -d' {} +
 
     pids=()
     exec_with_retry 5 0 stack_devstack $DEVSTACK_LOGS_DIR &
