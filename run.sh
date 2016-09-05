@@ -418,6 +418,10 @@ do
     if [ -n "${devstack_config[TUNNEL_ENDPOINT_IP]}" ]; then
         sed -i "/OVS_ENABLE_TUNNELING/ a TUNNEL_ENDPOINT_IP=${devstack_config[TUNNEL_ENDPOINT_IP]}" $devstack_dir/local.conf
     fi
+    
+    # NOTE(claudiub): some projects might have some changes done locally, meaning that the branch
+    # can't be switched easily. This command will hard-reset every git repo in /opt/stack/
+    find /opt/stack/ -type d -maxdepth 1 -mindepth 1 -execdir sh -c 'cd $0; git reset --hard HEAD' {} +
 
     pids=()
     exec_with_retry 5 0 stack_devstack $DEVSTACK_LOGS_DIR &
