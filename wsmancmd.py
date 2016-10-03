@@ -65,7 +65,7 @@ def run_wsman_cmd(url, username, password, cmd):
                           username=username,
                           password=password)
 
-    shell_id = p.open_shell()
+    shell_id = p.open_shell(codepage=65001)
 
     command_id = p.run_command(shell_id, cmd[0], cmd[1:])
     std_out, std_err, status_code = p.get_command_output(shell_id, command_id)

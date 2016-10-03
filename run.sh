@@ -40,7 +40,7 @@ function install_compute() {
     local msi_url=$4
     local use_ovs=$5
     echo "Installing OpenStack services on: $win_host"
-    run_wsman_ps $win_host "cd $repo_dir\\windows; .\\installnova.ps1 -DevstackHost $devstack_host -Password $password -MSIUrl $msi_url -UseOvs \$$use_ovs"
+    run_wsman_ps $win_host "cd $repo_dir\\windows; .\\installnova.ps1 -DevstackHost $devstack_host -Password $password -InstallerUrl $msi_url -UseOvs \$$use_ovs"
     echo "OpenStack services installed on: $win_host"
 }
 
