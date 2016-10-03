@@ -164,37 +164,6 @@ config=yaml.load(sys.stdin);
 print config[\"$test_name\"].get('use_ovs', False)"
 }
 
-function stack_devstack() {
-    local log_dir=$1
-    local ret_val=0
-    push_dir
-    cd $devstack_dir
-    echo "Running unstack.sh"
-    ./unstack.sh > /dev/null 2>&1 || true
-
-    rm -rf $stack_base_dir/*.venv
-
-    echo "Running stack.sh"
-    ./stack.sh > "$log_dir/devstack_stack.txt" 2> "$log_dir/devstack_stack_err.txt" || ret_val=$?
-    echo "stack.sh - exit code: $ret_val"
-
-    pop_dir
-    return $ret_val
-}
-
-function unstack_devstack() {
-    local log_dir=$1
-    local ret_val=0
-    push_dir
-    cd $devstack_dir
-    echo "Running unstack.sh"
-    ./unstack.sh > "$log_dir/devstack_unstack.txt" 2> "$log_dir/devstack_unstack_err.txt" || ret_val=$?
-    echo "unstack.sh - exit code: $ret_val"
-
-    pop_dir
-    return $ret_val
-}
-
 function check_host_services_count() {
     local expected_hosts_count=$1
     local neutron_agent_type=$2
@@ -219,17 +188,39 @@ function copy_devstack_config_files() {
 
     mkdir -p $dest_dir
 
-    check_copy_dir /etc/ceilometer $dest_dir
-    check_copy_dir /etc/cinder $dest_dir
-    check_copy_dir /etc/glance $dest_dir
-    check_copy_dir /etc/heat $dest_dir
-    check_copy_dir /etc/keystone $dest_dir
-    check_copy_dir /etc/nova $dest_dir
-    check_copy_dir /etc/neutron $dest_dir
-    check_copy_dir /etc/swift $dest_dir
+    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/ceilometer" $dest_dir 
+    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/cinder" $dest_dir
+    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/glance" $dest_dir
+    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/heat" $dest_dir
+    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/keystone" $dest_dir
+    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/nova" $dest_dir
+    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/neutron" $dest_dir
+    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/swift" $dest_dir
 
     mkdir $dest_dir/tempest
-    check_copy_dir $tempest_dir/etc $dest_dir/tempest
+    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/tempest/etc" $dest_dir
+}
+
+function copy_devstack_logs() {
+    local container_logs_dir=$1
+    local destination_logs=$2
+
+    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:$container_logs_dir/*" $destination_logs
+}
+
+function copy_devstack_screen_logs() {
+    local container_screen_logs_dir=$1
+    local destination_logs=$2
+
+    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:$container_screen_logs_dir/*" $destination_logs
+}
+
+function copy_tempest_results() {
+    local container_tempest_dir=$1
+    local destination_logs=$2
+
+    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:$container_tempest_dir/*" $destination_logs
+
 }
 
 function check_host_time() {
@@ -298,10 +289,13 @@ fi
 # Check if the URL is valid
 wget -q --spider --no-check-certificate $msi_url || (echo "$msi_url is not a valid url"; exit 1)
 
+TEST_HOST_IP_ADDR=`get_host_ip_addr`
+export TEST_HOST_IP_ADDR
+
 export DEVSTACK_BRANCH
 
-DEVSTACK_IP_ADDR=`get_devstack_ip_addr`
-export DEVSTACK_IP_ADDR
+DEVSTACK_CONTAINER_NAME="devstack-$DEVSTACK_BRANCH"
+export DEVSTACK_CONTAINER_NAME
 
 DEVSTACK_PASSWORD=Passw0rd
 export DEVSTACK_PASSWORD
@@ -309,7 +303,10 @@ export DEVSTACK_PASSWORD
 export OS_USERNAME=admin
 export OS_PASSWORD=$DEVSTACK_PASSWORD
 export OS_TENANT_NAME=admin
-export OS_AUTH_URL=http://127.0.0.1:5000/v2.0
+export OS_AUTH_URL=http://$DEVSTACK_IP_ADDR:5000/v2.0
+
+export CONTAINER_USER=$USER
+export CONTAINER_PASSWORD=Passw0rd
 
 git_repo_url="https://github.com/cloudbase/openstack-hyperv-release-tests"
 repo_dir="C:\\Dev\\openstack-hyperv-release-tests"
@@ -317,6 +314,7 @@ win_user=Administrator
 win_password=Passw0rd
 host_config_dir="C:\\OpenStack\\cloudbase\\nova\\etc"
 host_logs_dir="/OpenStack/Log"
+temp_setup_dir="$HOME/temp_stack_setup"
 devstack_dir="$HOME/devstack"
 images_dir=$devstack_dir
 stack_base_dir="/opt/stack"
@@ -325,17 +323,62 @@ config_file="config.yaml"
 max_parallel_tests=8
 max_attempts=5
 tcp_ports=(5672 5000 9292 9696 35357)
+ssh_key="$HOME/.ssh/container_rsa"
 
 test_reports_base_dir=`realpath $BASEDIR`/reports
 
-clone_pull_repo $devstack_dir "https://github.com/openstack-dev/devstack.git" $DEVSTACK_BRANCH
-pull_all_git_repos $stack_base_dir $DEVSTACK_BRANCH
+set -x
+
+function start_container() {
+#import container from archive. if it does not exist, create template.
+     local container_name=$1
+     local container_templates_path="/$HOME/devstack_lxc_containers"
+     local container_template_name="$container_name-template.tar.gz"
+     local template_file="$container_templates_path/$container_template_name"
+     local container_config_file_path="$container_templates_path/devstack_lxc.conf"
+     local lxc_dir="/var/lib/lxc"
+
+     if [ ! -f $template_file ];
+     then
+   	echo "No container template found for $container_name. Creating one."
+        create_container_template $container_name $container_config_file_path $CONTAINER_USER $CONTAINER_PASSWORD $ssh_key        
+     fi
+
+     sudo mkdir -p "$lxc_dir/$container_name"
+     sudo tar -xvf $template_file -C "$lxc_dir/$container_name"
+     sudo lxc-start -n $container_name -d
+     sleep 10
+}
+
+
+#make sure container doesn't already exist
+destroy_container $DEVSTACK_CONTAINER_NAME
+
+start_container $DEVSTACK_CONTAINER_NAME
+
+DEVSTACK_IP_ADDR=`get_container_ip_addr $DEVSTACK_CONTAINER_NAME`
+export DEVSTACK_IP_ADDR
+
+#setup container repos
+container_test_dir="$HOME/openstack-hyperv-release-tests"
+
+run_ssh $DEVSTACK_IP_ADDR "rm -rf $container_test_dir" $ssh_key
+run_ssh $DEVSTACK_IP_ADDR "git clone $git_repo_url $container_test_dir" $ssh_key
+run_ssh $DEVSTACK_IP_ADDR "source $container_test_dir/utils.sh ; clone_pull_repo  $devstack_dir 'https://github.com/openstack-dev/devstack.git' $DEVSTACK_BRANCH" $ssh_key
+run_ssh $DEVSTACK_IP_ADDR "source $container_test_dir/utils.sh ; pull_all_git_repos $stack_base_dir $DEVSTACK_BRANCH" $ssh_key
+
+# create temporary remote log dir
+container_devstack_logs="$HOME/devstack_logs"
+run_ssh $DEVSTACK_IP_ADDR "mkdir -p $container_devstack_logs" $ssh_key
+container_screen_logs="$HOME/screen_logs"
+run_ssh $DEVSTACK_IP_ADDR "mkdir -p $container_screen_logs" $ssh_key
+
 
 add_user_to_passwordless_sudoers $USER 70_devstack_hyperv
 
 reports_dir_name=`date +"%Y_%m_%d_%H_%M_%S_%N"`
 
-http_base_url="http://$DEVSTACK_IP_ADDR:8001"
+http_base_url="http://$TEST_HOST_IP_ADDR:8001"
 
 has_failed_tests=0
 
@@ -385,47 +428,64 @@ do
     export DEVSTACK_LIVE_MIGRATION=${devstack_config[live_migration]}
     export DEVSTACK_SAME_HOST_RESIZE=${devstack_config[allow_resize_to_same_host]}
     export DEVSTACK_INTERFACE_ATTACH=false
+ 
+    echo "getting images"
 
     image_url="${devstack_config[image_url]}"
-    check_get_image $image_url "$images_dir"
-    export DEVSTACK_IMAGE_FILE=`check_get_image $image_url "$images_dir"`
+    check_get_image $image_url $images_dir
+    DEVSTACK_IMAGE_FILE=`check_get_image $image_url $images_dir`
 
     heat_image_url="${devstack_config[heat_image_url]}"
-    check_get_image $heat_image_url "$images_dir"
-    export DEVSTACK_HEAT_IMAGE_FILE=`check_get_image $heat_image_url "$images_dir"`
+    check_get_image $heat_image_url $images_dir
+    export DEVSTACK_HEAT_IMAGE_FILE=`check_get_image $heat_image_url $images_dir`
 
-    export DEVSTACK_IMAGE_FILE=`check_get_image $image_url "$images_dir"`
+    scp -i $ssh_key "$images_dir/$DEVSTACK_IMAGE_FILE" "$CONTAINER_USER@$DEVSTACK_IP_ADDR:$images_dir"
+    scp -i $ssh_key "$images_dir/$DEVSTACK_HEAT_IMAGE_FILE" "$CONTAINER_USER@$DEVSTACK_IP_ADDR:$images_dir"
+
     export DEVSTACK_IMAGES_DIR=$images_dir
     export DEVSTACK_LOGS_DIR="$test_logs_dir/devstack"
-
     # Disable access to OpenStack services to any remote host
     firewall_manage_ports "" add disable ${tcp_ports[@]}
 
     mkdir -p $DEVSTACK_LOGS_DIR
 
-    cp local.conf $devstack_dir
-    cp local.sh $devstack_dir
-    sed -i "s/<%DEVSTACK_SAME_HOST_RESIZE%>/$DEVSTACK_SAME_HOST_RESIZE/g" $devstack_dir/local.conf
-    
-    # NOTE(claudiub): some projects might have some changes done locally, meaning that the branch
-    # can't be switched easily. This command will hard-reset and clean every git repo in /opt/stack/
-    find /opt/stack/ -name *.git -type d -maxdepth 2 -mindepth 2 -execdir sh -c 'git reset --hard && git clean -f -d' {} +
+    mkdir -p $temp_setup_dir
+    cp local.conf $temp_setup_dir
+    cp local.sh $temp_setup_dir
+    sed -i "s/<%DEVSTACK_SAME_HOST_RESIZE%>/$DEVSTACK_SAME_HOST_RESIZE/g" $temp_setup_dir/local.conf
+    sed -i "s/<%DEVSTACK_IP_ADDR%>/$DEVSTACK_IP_ADDR/g" $temp_setup_dir/local.conf
+    sed -i "s#<%DEVSTACK_IMAGES_DIR%>#$DEVSTACK_IMAGES_DIR#g" $temp_setup_dir/local.conf
+    sed -i "s/<%DEVSTACK_IMAGE_FILE%>/$DEVSTACK_IMAGE_FILE/g" $temp_setup_dir/local.conf
+    sed -i "s/<%DEVSTACK_HEAT_IMAGE_FILE%>/$DEVSTACK_HEAT_IMAGE_FILE/g" $temp_setup_dir/local.conf
+    sed -i "s/<%DEVSTACK_LIVE_MIGRATION%>/$DEVSTACK_LIVE_MIGRATION/g" $temp_setup_dir/local.conf
+    sed -i "s/<%DEVSTACK_PASSWORD%>/$DEVSTACK_PASSWORD/g" $temp_setup_dir/local.conf
+    sed -i "s/<%DEVSTACK_BRANCH%>/$DEVSTACK_BRANCH/g" $temp_setup_dir/local.conf
+    sed -i "s#<%DEVSTACK_LOGS_DIR%>#$container_screen_logs#g" $temp_setup_dir/local.conf
+
 
     if [ -n "${devstack_config[Q_ML2_TENANT_NETWORK_TYPE]}" ]; then
-        sed -i "s/Q_ML2_TENANT_NETWORK_TYPE=.*/Q_ML2_TENANT_NETWORK_TYPE=${devstack_config[Q_ML2_TENANT_NETWORK_TYPE]}/g" $devstack_dir/local.conf
+        sed -i "s/Q_ML2_TENANT_NETWORK_TYPE=.*/Q_ML2_TENANT_NETWORK_TYPE=${devstack_config[Q_ML2_TENANT_NETWORK_TYPE]}/g" $temp_setup_dir/local.conf
     fi
 
     if [ -n "${devstack_config[OVS_ENABLE_TUNNELING]}" ]; then
-        sed -i "s/OVS_ENABLE_TUNNELING=.*/OVS_ENABLE_TUNNELING=${devstack_config[OVS_ENABLE_TUNNELING]}/g" $devstack_dir/local.conf
+        sed -i "s/OVS_ENABLE_TUNNELING=.*/OVS_ENABLE_TUNNELING=${devstack_config[OVS_ENABLE_TUNNELING]}/g" $temp_setup_dir/local.conf
     fi
 
     if [ -n "${devstack_config[TUNNEL_ENDPOINT_IP]}" ]; then
-        sed -i "/OVS_ENABLE_TUNNELING/ a TUNNEL_ENDPOINT_IP=${devstack_config[TUNNEL_ENDPOINT_IP]}" $devstack_dir/local.conf
+        sed -i "/OVS_ENABLE_TUNNELING/ a TUNNEL_ENDPOINT_IP=${devstack_config[TUNNEL_ENDPOINT_IP]}" $temp_setup_dir/local.conf
     fi
 
-    pids=()
-    exec_with_retry 5 0 stack_devstack $DEVSTACK_LOGS_DIR &
-    pids+=("$!")
+
+    # create temporary remote log dir
+    container_devstack_logs="$HOME/devstack_logs"
+    run_ssh $DEVSTACK_IP_ADDR "mkdir -p $container_devstack_logs" $ssh_key
+    container_screen_logs="$HOME/screen_logs"
+    run_ssh $DEVSTACK_IP_ADDR "mkdir -p $container_screen_logs" $ssh_key
+
+    scp -i $ssh_key $temp_setup_dir/local.conf "$CONTAINER_USER@$DEVSTACK_IP_ADDR:$devstack_dir/local.conf"
+    scp -i $ssh_key $temp_setup_dir/local.sh "$CONTAINER_USER@$DEVSTACK_IP_ADDR:$devstack_dir/local.sh"
+
+    run_ssh $DEVSTACK_IP_ADDR "source $container_test_dir/utils.sh ; exec_with_retry 1 0 stack_devstack $container_devstack_logs $devstack_dir" $ssh_key
 
     host_names=(`get_config_test_hosts $test_name`)
     use_ovs=(`get_config_use_ovs $test_name`)
@@ -439,6 +499,8 @@ do
     do
         wait $pid
     done
+
+    copy_devstack_logs $container_devstack_logs $DEVSTACK_LOGS_DIR
 
     if [ "$use_ovs" = True ]; then
         neutron_agent_type="Open vSwitch agent"
@@ -468,22 +530,22 @@ do
         test_suite=`get_config_test_test_suite $test_name`
     fi
 
-    enable_venv "$tempest_dir/.venv"
+    container_tempest_result_dir="/$HOME/tempest_results"
+    run_ssh $DEVSTACK_IP_ADDR  "mkdir -p $container_tempest_result_dir" $ssh_key
+    run_ssh $DEVSTACK_IP_ADDR "cd $container_test_dir ; source $container_test_dir/utils.sh ; run_tempest $test_suite $container_tempest_result_dir $max_parallel_tests $max_attempts" $ssh_key
+    
 
-    echo "Running Tempest tests: $test_suite"
     subunit_log_file="$test_reports_dir/subunit-output.log"
-    html_results_file="$test_reports_dir/results.html"
-    $BASEDIR/run-all-tests.sh $tempest_dir $max_parallel_tests $max_attempts \
-        $test_suite "$subunit_log_file" "$html_results_file" \
-        > $test_logs_dir/out.txt 2> $test_logs_dir/err.txt \
-        || has_failed_tests=1
 
-    # Exit venv
-    deactivate
+    copy_tempest_results $container_tempest_results_dir $test_reports_dir
 
     subunit-stats --no-passthrough "$subunit_log_file" || true
 
+    copy_devstack_screen_logs $container_screen_logs $DEVSTACK_LOGS_DIR
     copy_devstack_config_files "$test_config_dir/devstack"
+
+    #destroy lxc devstack container
+    destroy_container $DEVSTACK_CONTAINER_NAME
 
     for host_name in ${host_names[@]};
     do

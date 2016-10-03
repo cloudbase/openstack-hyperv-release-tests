@@ -9,6 +9,21 @@ function run_wsman_cmd() {
     $BASEDIR/wsmancmd.py -u $win_user -p $win_password -U https://$1:5986/wsman $cmd
 }
 
+function run_ssh() {
+    local host=$1;
+    local command=$2;
+    local ssh_key=$3;
+    ssh -o StrictHostKeyChecking=no -i $ssh_key "$USER@$host" $command
+}
+
+function run_scp() {
+    local host=$1
+    local source_file=$2
+    local destination_file=$3
+    local ssh_key=$4
+    scp -i $ssh_key $source_file $destination_file
+}
+
 function get_win_files() {
     local host=$1
     local remote_dir=$2
@@ -149,7 +164,12 @@ function exec_with_retry () {
     return $exit_code
 }
 
-function get_devstack_ip_addr() {
+function get_container_ip_addr() {
+     local container_name=$1
+     sudo lxc-info -n $container_name | grep IP | awk 'BEGIN { FS = ":[ ]*" } ; { print $2 }'
+}
+
+function get_host_ip_addr() {
     python -c "import socket;
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM);
 s.connect(('8.8.8.8', 80));
@@ -234,3 +254,101 @@ function pull_all_git_repos() {
         fi
     done
 }
+
+function stack_devstack() {
+    local log_dir=$1
+    local devstack_dir=$2
+    local ret_val=0
+    push_dir
+    cd $devstack_dir
+    echo "Running unstack.sh"
+    ./unstack.sh > /dev/null 2>&1 || true
+
+    rm -rf $stack_base_dir/*.venv
+
+    echo "Running stack.sh"
+    ./stack.sh > "$log_dir/devstack_stack.txt" 2> "$log_dir/devstack_stack_err.txt" || ret_val=$?
+    echo "stack.sh - exit code: $ret_val"
+
+    pop_dir
+    return $ret_val
+}
+
+function unstack_devstack() {
+    local log_dir=$1
+    local devstack_dir=$2
+    local ret_val=0
+    push_dir
+    cd $devstack_dir
+    echo "Running unstack.sh"
+    ./unstack.sh > "$log_dir/devstack_unstack.txt" 2> "$log_dir/devstack_unstack_err.txt" || ret_val=$?
+    echo "unstack.sh - exit code: $ret_val"
+
+    pop_dir
+    return $ret_val
+}
+
+function create_container_template() {
+     local container_name=$1
+     local container_config_file=$2
+     local container_user=$3
+     local container_password=$4
+     local ssh_key=$5
+
+     echo "Creating container $container_name"
+     sudo lxc-create -n $container_name -t ubuntu -f $container_config_file -- --packages=bsdmainutils,git,openvswitch-switch,wget,python-dev,python-pip,build-essential --password $container_password --user $container_user
+     echo "Setup paswordless sudo for user $container_user"
+     local container_rootfs=/var/lib/lxc/$container_name/rootfs
+     sudo sh -c "echo $container_user 'ALL=(ALL) NOPASSWD:ALL' > $container_rootfs/etc/sudoers.d/70_hyperv_devstack && chmod 440 $container_rootfs/etc/sudoers.d/70_hyperv_devstack"
+
+     echo "Starting container $container_name"
+     sudo lxc-start -n $container_name -d
+     sleep 10
+
+     container_ip=`get_container_ip_addr $container_name`
+     echo "Container ip: $container_ip"
+     echo "Setup container ssh key"
+     sshpass -p $container_password ssh-copy-id -o StrictHostKeyChecking=no -i "$ssh_key.pub" $container_user@$container_ip
+
+     echo "Configure container git ssl verify"
+     run_ssh $container_ip "git config --global http.sslVerify false; git config --global https.sslVerify false" $ssh_key
+
+     echo "Creating ovs br-eth1"
+     run_ssh $container_ip "sudo ovs-vsctl add-br br-eth1 ; sudo ovs-vsctl add-port br-eth1 eth1" $ssh_key
+
+     echo "Installing networking hyper-v for devstack"
+     run_ssh $container_ip "sudo pip install networking-hyperv==3.0.0" $ssh_key
+
+     echo "Stopping container"
+     sudo lxc-stop -n $container_name
+
+     echo "Creating container template archive"
+     sudo tar -zcvf "/$HOME/devstack_lxc_containers/$container_name-template.tar.gz" -C "/var/lib/lxc/$container_name" .
+
+     echo "Destroying container"
+     sudo lxc-destroy -n $container_name
+}
+
+function destroy_container() {
+    local container_name=$1
+
+    sudo lxc-stop -n $container_name || true
+    sleep 10
+    sudo lxc-destroy -n $container_name || true
+}
+
+function run_tempest() {
+    local test_suite=$1
+    local test_logs_dir=$2
+    local max_parallel_tests=$3
+    local max_attempts=$4
+    local tempest_dir="/opt/stack/tempest"
+    subunit_log_file="$test_logs_dir/subunit-output.log"
+    html_results_file="$test_logs_dir/results.html"
+
+    $BASEDIR/run-all-tests.sh $tempest_dir $max_parallel_tests $max_attempts \
+    $test_suite "$subunit_log_file" "$html_results_file" \
+    > $test_logs_dir/out.txt 2> $test_logs_dir/err.txt \
+   || has_failed_tests=1
+}
+
