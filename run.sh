@@ -187,18 +187,15 @@ function copy_devstack_config_files() {
     local dest_dir=$1
 
     mkdir -p $dest_dir
-
-    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/ceilometer" $dest_dir
-    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/cinder" $dest_dir
-    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/glance" $dest_dir
-    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/heat" $dest_dir
-    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/keystone" $dest_dir
-    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/nova" $dest_dir
-    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/neutron" $dest_dir
-    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/swift" $dest_dir
+    folders=("/etc/ceilometer" "/etc/cinder" "/etc/glance" "/etc/heat" "/etc/keystone" "/etc/nova" "/etc/neutron" "/etc/switf")
+    for folder in ${folders[@]}
+    do
+        # Some of these folders may not exist, if that is the case, log and continue
+        scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:$folder" $dest_dir || echo "Could not find $folder on devstack host"
+    done
 
     mkdir $dest_dir/tempest
-    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/tempest/etc" $dest_dir
+    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/opt/stack/tempest/etc" $dest_dir/tempest || echo "Could not find /opt/stack/tempest/etc on devstack host"
 }
 
 function copy_devstack_logs() {
@@ -303,7 +300,7 @@ export DEVSTACK_PASSWORD
 export CONTAINER_USER=$USER
 export CONTAINER_PASSWORD=Passw0rd
 
-git_repo_url="https://github.com/adelina-t/openstack-hyperv-release-tests"
+git_repo_url="https://github.com/cloudbase/openstack-hyperv-release-tests"
 repo_dir="C:\\Dev\\openstack-hyperv-release-tests"
 win_user=Administrator
 win_password=Passw0rd
@@ -361,7 +358,7 @@ export OS_AUTH_URL=http://$DEVSTACK_IP_ADDR:5000/v2.0
 container_test_dir="$HOME/openstack-hyperv-release-tests"
 
 run_ssh $DEVSTACK_IP_ADDR "rm -rf $container_test_dir" $ssh_key
-run_ssh $DEVSTACK_IP_ADDR "git clone -b nuc_ci_containers $git_repo_url $container_test_dir" $ssh_key
+run_ssh $DEVSTACK_IP_ADDR "git clone $git_repo_url $container_test_dir" $ssh_key
 run_ssh $DEVSTACK_IP_ADDR "source $container_test_dir/utils.sh ; clone_pull_repo  $devstack_dir 'https://github.com/openstack-dev/devstack.git' $DEVSTACK_BRANCH" $ssh_key
 run_ssh $DEVSTACK_IP_ADDR "source $container_test_dir/utils.sh ; pull_all_git_repos $stack_base_dir $DEVSTACK_BRANCH" $ssh_key
 
@@ -544,12 +541,12 @@ do
 
     subunit_log_file="$test_reports_dir/subunit-output.log"
 
-    copy_tempest_results $container_tempest_results_dir $test_reports_dir
+    copy_tempest_results $container_tempest_result_dir $test_reports_dir
 
     subunit-stats --no-passthrough "$subunit_log_file" || true
 
-    copy_devstack_screen_logs $container_screen_logs $DEVSTACK_LOGS_DIR
-    copy_devstack_config_files "$test_config_dir/devstack"
+    copy_devstack_screen_logs $container_screen_logs $DEVSTACK_LOGS_DIR || true
+    copy_devstack_config_files $DEVSTACK_LOGS_DIR
 
     #destroy lxc devstack container
     destroy_container $DEVSTACK_CONTAINER_NAME
