@@ -548,9 +548,6 @@ do
     copy_devstack_screen_logs $container_screen_logs $DEVSTACK_LOGS_DIR || true
     copy_devstack_config_files $DEVSTACK_LOGS_DIR
 
-    #destroy lxc devstack container
-    destroy_container $DEVSTACK_CONTAINER_NAME
-
     for host_name in ${host_names[@]};
     do
         exec_with_retry 5 10 stop_compute_services $host_name $neutron_service
@@ -571,7 +568,7 @@ do
         pids+=("$!")
     done
 
-    exec_with_retry 5 0 unstack_devstack $DEVSTACK_LOGS_DIR &
+    run_ssh $DEVSTACK_IP_ADDR "source $container_test_dir/utils.sh ; exec_with_retry 5 0 unstack_devstack $container_devstack_logs $devstack_dir" $ssh_key &
     pids+=("$!")
 
     for pid in ${pids[@]};
@@ -596,6 +593,9 @@ do
     echo "Test HTML results: $http_test_base_url/results.html"
     echo "All test logs and config files: $http_test_base_url"
 done
+
+echo "Destroying lxc container $DEVSTACK_CONTAINER_NAME"
+destroy_container $DEVSTACK_CONTAINER_NAME
 
 echo "Done!"
 
