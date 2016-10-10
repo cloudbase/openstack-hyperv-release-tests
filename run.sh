@@ -187,18 +187,15 @@ function copy_devstack_config_files() {
     local dest_dir=$1
 
     mkdir -p $dest_dir
-
-    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/ceilometer" $dest_dir 
-    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/cinder" $dest_dir
-    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/glance" $dest_dir
-    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/heat" $dest_dir
-    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/keystone" $dest_dir
-    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/nova" $dest_dir
-    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/neutron" $dest_dir
-    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/swift" $dest_dir
+    folders=("/etc/ceilometer" "/etc/cinder" "/etc/glance" "/etc/heat" "/etc/keystone" "/etc/nova" "/etc/neutron" "/etc/switf")
+    for folder in ${folders[@]}
+    do
+        # Some of these folders may not exist, if that is the case, log and continue
+        scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:$folder" $dest_dir || echo "Could not find $folder on devstack host"
+    done
 
     mkdir $dest_dir/tempest
-    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/etc/tempest/etc" $dest_dir
+    scp -i $ssh_key -r "$DEVSTACK_USER@$DEVSTACK_IP_ADDR:/opt/stack/tempest/etc" $dest_dir/tempest || echo "Could not find /opt/stack/tempest/etc on devstack host"
 }
 
 function copy_devstack_logs() {
@@ -300,11 +297,6 @@ export DEVSTACK_CONTAINER_NAME
 DEVSTACK_PASSWORD=Passw0rd
 export DEVSTACK_PASSWORD
 
-export OS_USERNAME=admin
-export OS_PASSWORD=$DEVSTACK_PASSWORD
-export OS_TENANT_NAME=admin
-export OS_AUTH_URL=http://$DEVSTACK_IP_ADDR:5000/v2.0
-
 export CONTAINER_USER=$USER
 export CONTAINER_PASSWORD=Passw0rd
 
@@ -326,8 +318,6 @@ tcp_ports=(5672 5000 9292 9696 35357)
 ssh_key="$HOME/.ssh/container_rsa"
 
 test_reports_base_dir=`realpath $BASEDIR`/reports
-
-set -x
 
 function start_container() {
 #import container from archive. if it does not exist, create template.
@@ -358,6 +348,11 @@ start_container $DEVSTACK_CONTAINER_NAME
 
 DEVSTACK_IP_ADDR=`get_container_ip_addr $DEVSTACK_CONTAINER_NAME`
 export DEVSTACK_IP_ADDR
+
+export OS_USERNAME=admin
+export OS_PASSWORD=$DEVSTACK_PASSWORD
+export OS_TENANT_NAME=admin
+export OS_AUTH_URL=http://$DEVSTACK_IP_ADDR:5000/v2.0
 
 #setup container repos
 container_test_dir="$HOME/openstack-hyperv-release-tests"
@@ -428,7 +423,7 @@ do
     export DEVSTACK_LIVE_MIGRATION=${devstack_config[live_migration]}
     export DEVSTACK_SAME_HOST_RESIZE=${devstack_config[allow_resize_to_same_host]}
     export DEVSTACK_INTERFACE_ATTACH=false
- 
+
     echo "getting images"
 
     image_url="${devstack_config[image_url]}"
@@ -452,6 +447,12 @@ do
     mkdir -p $temp_setup_dir
     cp local.conf $temp_setup_dir
     cp local.sh $temp_setup_dir
+
+    sed -i "s/<%DEVSTACK_LIVE_MIGRATION%>/$DEVSTACK_LIVE_MIGRATION/g" $temp_setup_dir/local.sh
+    sed -i "s/<%DEVSTACK_INTERFACE_ATTACH%>/$DEVSTACK_INTERFACE_ATTACH/g" $temp_setup_dir/local.sh
+    sed -i "s#<%DEVSTACK_IMAGES_DIR%>#$DEVSTACK_IMAGES_DIR#g" $temp_setup_dir/local.sh
+    sed -i "s/<%DEVSTACK_IMAGE_FILE%>/$DEVSTACK_IMAGE_FILE/g" $temp_setup_dir/local.sh
+
     sed -i "s/<%DEVSTACK_SAME_HOST_RESIZE%>/$DEVSTACK_SAME_HOST_RESIZE/g" $temp_setup_dir/local.conf
     sed -i "s/<%DEVSTACK_IP_ADDR%>/$DEVSTACK_IP_ADDR/g" $temp_setup_dir/local.conf
     sed -i "s#<%DEVSTACK_IMAGES_DIR%>#$DEVSTACK_IMAGES_DIR#g" $temp_setup_dir/local.conf
@@ -485,7 +486,9 @@ do
     scp -i $ssh_key $temp_setup_dir/local.conf "$CONTAINER_USER@$DEVSTACK_IP_ADDR:$devstack_dir/local.conf"
     scp -i $ssh_key $temp_setup_dir/local.sh "$CONTAINER_USER@$DEVSTACK_IP_ADDR:$devstack_dir/local.sh"
 
-    run_ssh $DEVSTACK_IP_ADDR "source $container_test_dir/utils.sh ; exec_with_retry 1 0 stack_devstack $container_devstack_logs $devstack_dir" $ssh_key
+    pids=()
+    run_ssh $DEVSTACK_IP_ADDR "source $container_test_dir/utils.sh ; exec_with_retry 1 0 stack_devstack $container_devstack_logs $devstack_dir" $ssh_key &
+    pids+=("$!")
 
     host_names=(`get_config_test_hosts $test_name`)
     use_ovs=(`get_config_use_ovs $test_name`)
@@ -530,22 +533,20 @@ do
         test_suite=`get_config_test_test_suite $test_name`
     fi
 
+
+    echo "Running tempest with test suite: $test_suite"
     container_tempest_result_dir="/$HOME/tempest_results"
     run_ssh $DEVSTACK_IP_ADDR  "mkdir -p $container_tempest_result_dir" $ssh_key
     run_ssh $DEVSTACK_IP_ADDR "cd $container_test_dir ; source $container_test_dir/utils.sh ; run_tempest $test_suite $container_tempest_result_dir $max_parallel_tests $max_attempts" $ssh_key
-    
 
     subunit_log_file="$test_reports_dir/subunit-output.log"
 
-    copy_tempest_results $container_tempest_results_dir $test_reports_dir
+    copy_tempest_results $container_tempest_result_dir $test_reports_dir
 
     subunit-stats --no-passthrough "$subunit_log_file" || true
 
-    copy_devstack_screen_logs $container_screen_logs $DEVSTACK_LOGS_DIR
-    copy_devstack_config_files "$test_config_dir/devstack"
-
-    #destroy lxc devstack container
-    destroy_container $DEVSTACK_CONTAINER_NAME
+    copy_devstack_screen_logs $container_screen_logs $DEVSTACK_LOGS_DIR || true
+    copy_devstack_config_files $DEVSTACK_LOGS_DIR
 
     for host_name in ${host_names[@]};
     do
@@ -567,7 +568,7 @@ do
         pids+=("$!")
     done
 
-    exec_with_retry 5 0 unstack_devstack $DEVSTACK_LOGS_DIR &
+    run_ssh $DEVSTACK_IP_ADDR "source $container_test_dir/utils.sh ; exec_with_retry 5 0 unstack_devstack $container_devstack_logs $devstack_dir" $ssh_key &
     pids+=("$!")
 
     for pid in ${pids[@]};
@@ -592,6 +593,9 @@ do
     echo "Test HTML results: $http_test_base_url/results.html"
     echo "All test logs and config files: $http_test_base_url"
 done
+
+echo "Destroying lxc container $DEVSTACK_CONTAINER_NAME"
+destroy_container $DEVSTACK_CONTAINER_NAME
 
 echo "Done!"
 
