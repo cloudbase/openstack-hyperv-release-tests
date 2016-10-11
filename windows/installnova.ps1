@@ -1,112 +1,50 @@
 Param(
   [string]$DevstackHost = $(throw "-DevstackHost is required."),
   [string]$Password = $(throw "-Password is required."),
-  [string]$MSIUrl = $(throw "-MSIUrl is required."),
+  [string]$InstallerUrl = $(throw "-InstallerUrl is required."),
   [boolean]$UseOvs = $false
  )
 
  $ErrorActionPreference = "Stop"
 [Environment]::CurrentDirectory = $pwd
 
-$products = gwmi Win32_Product -filter "Vendor = 'Cloudbase Solutions Srl'" | where {$_.Caption.StartsWith('OpenStack Hyper-V ')}
-if ($products) {
+Import-Module .\FastWebRequest.psm1
+Import-Module .\Utils.psm1
+
+$services = Get-Service | Where { @('nova-compute', 'neutron-hyperv-agent', 'ceilometer-polling') -contains $_.Name }
+if ($services.Length -eq 3) {
     Write-Host "Product already installed"
     exit 0
 }
 
-$svc = gwmi -Query "Select * From Win32_Service Where Name='MSiSCSI'"
-if ($svc.StartMode -ne 'Auto') {
-    $svc.ChangeStartMode('Automatic')
+$svc = Get-Service MSiSCSI
+if ($svc.StartType -ne 'Automatic') {
+    Set-Service -InputObject $svc -StartupType Automatic
 }
-if (!$svc.Started) {
-    $svc.StartService()
-}
-
-$msi = "HyperVNovaCompute_Test.msi"
-if(Test-Path $msi) {
-    del $msi
-}
-(New-Object System.Net.WebClient).DownloadFile($MSIUrl, $msi)
-
-$domainInfo = gwmi Win32_NTDomain
-if($domainInfo.DomainName) {
-    $domainName = $domainInfo.DomainName[1]
+if ($svc.Status -ne 'Running') {
+    Start-Service $svc
 }
 
-$features = @(
-"HyperVNovaCompute",
-"NeutronHyperVAgent",
-"CeilometerComputeAgent",
-"iSCSISWInitiator",
-"FreeRDP"
-)
-
-if($domainName) {
-    $features += "LiveMigration"
+$DownloadFile = "HyperVNovaCompute_Test"
+foreach ($FileName in @("$DownloadFile", "$DownloadFile.msi", "$DownloadFile.zip")) {
+    if (Test-Path $FileName) {
+        del $FileName
+    }
 }
 
-$msiLogPath="C:\OpenStack\Log\install_log.txt"
-$logDir = split-path $msiLogPath
-if(!(Test-Path $logDir)) {
-    mkdir $logDir
+Invoke-FastWebRequest -Uri $InstallerUrl -OutFile $DownloadFile
+
+if (IsZip $DownloadFile) {
+    $ZipPath = "$pwd\$DownloadFile.zip"
+    mv $DownloadFile $ZipPath
+
+    InstallZip $ZipPath $DevstackHost $Password
+} else {
+    $MSIPath = "$pwd\$DownloadFile.msi"
+    mv $DownloadFile $MSIPath
+
+    InstallMSI $MSIPath $DevstackHost $Password
 }
-
-$msiArgs = "/i $msi /qn /l*v $msiLogPath " + `
-
-"ADDLOCAL=" + ($features -join ",") + " " +
-
-"INSTALLDIR=C:\OpenStack\cloudbase\nova " +
-"GLANCEHOST=http://$DevstackHost " +
-"RPCBACKEND=RabbitMQ " +
-"RPCBACKENDHOST=$DevstackHost " +
-"RPCBACKENDUSER=stackrabbit " +
-"RPCBACKENDPASSWORD=Passw0rd " +
-
-"INSTANCESPATH=C:\OpenStack\Instances " +
-"LOGDIR=C:\OpenStack\Log " +
-
-"RDPCONSOLEURL=http://${DevstackHost}:8000 " +
-
-"ADDVSWITCH=0 " +
-"VSWITCHNAME=external " +
-
-"USECOWIMAGES=1 " +
-"FORCECONFIGDRIVE=1 " +
-"CONFIGDRIVEINJECTPASSWORD=1 " +
-"DYNAMICMEMORYRATIO=1 " +
-"ENABLELOGGING=1 " +
-"VERBOSELOGGING=1 " +
-
-"NEUTRONURL=http://${DevstackHost}:9696 " +
-"NEUTRONADMINTENANTNAME=service " +
-"NEUTRONADMINUSERNAME=neutron " +
-"NEUTRONADMINPASSWORD=$Password " +
-"NEUTRONADMINAUTHURL=http://${DevstackHost}:35357/v3 " +
-
-"CEILOMETERADMINTENANTNAME=service " +
-"CEILOMETERADMINUSERNAME=ceilometer " +
-"CEILOMETERADMINPASSWORD=$Password " +
-"CEILOMETERADMINAUTHURL=http://${DevstackHost}:35357/v3 "
-
-if ($domainName -and $features -ccontains "LiveMigration") {
-    $msiArgs += "LIVEMIGRAUTHTYPE=1 " +
-        "MAXACTIVEVSMIGR=8 " +
-        "MAXACTIVESTORAGEMIGR=8 " +
-        "MIGRNETWORKSANY=1 " +
-        "NOVACOMPUTESERVICEUSER=${domainName}\Administrator "
-}
-else {
-    $msiArgs += "NOVACOMPUTESERVICEUSER=$(hostname)\Administrator "
-}
-
-$msiArgs += "NOVACOMPUTESERVICEPASSWORD=Passw0rd "
-
-Write-Host "Installing ""$msi"""
-
-$p = Start-Process -Wait "msiexec.exe" -ArgumentList $msiArgs -PassThru
-if($p.ExitCode) { throw "msiexec failed" }
-
-Write-Host """$msi"" installed successfully"
 
 if ($UseOvs) {
     # we need to stop the neutron hyper-v agent since we will be using ovs
@@ -116,10 +54,9 @@ if ($UseOvs) {
     }
     Write-Host "Setting up ovs-agent service"
     cmd.exe /c .\create_ovs_service.cmd
-    cp .\neutron_ovs_agent.conf "C:\OpenStack\cloudbase\nova\etc\."
 
-    Import-Module .\ini.psm1
-    Set-IniFileValue -Path "C:\OpenStack\cloudbase\nova\etc\neutron_ovs_agent.conf" -Section "DEFAULT" -Key "rabbit_host" -Value $DevstackHost
+    $ConfDir = "C:\OpenStack\cloudbase\nova\etc\"
+    ConfigureNeutronOVSAgent $ConfDir $DevstackHost $Password
 
     Write-Host "Ovs-agent set up complete"
 }

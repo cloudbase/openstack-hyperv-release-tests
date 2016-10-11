@@ -12,7 +12,11 @@ if ($s) {
     ovs-vsctl --if-exists del-br br-int
 }
 
-$products = gwmi Win32_Product -filter "Vendor = 'Cloudbase Solutions Srl'" | where {$_.Caption.StartsWith('OpenStack Hyper-V ')}
+try {
+    # Nano does not have gwmi.
+    $products = gwmi Win32_Product -filter "Vendor = 'Cloudbase Solutions Srl'" | Where {$_.Caption.StartsWith('OpenStack Hyper-V ')}
+} catch {}
+
 if ($products) {
     $msi_log_path="C:\OpenStack\Log\uninstall_log.txt"
     $log_dir = split-path $msi_log_path
@@ -28,10 +32,20 @@ if ($products) {
     }
 }
 
-$pythonProcesses = get-process | where {$_.Path -eq "C:\OpenStack\cloudbase\nova\Python27\python.exe"}
-foreach($p in $pythonProcesses) {
-    Write-Warning "Killing OpenStack Python process. This process should not be alive!"
-    $p | kill -Force
+foreach ($serviceName in @("nova-compute", "neutron-hyperv-agent", "ceilometer-polling")) {
+    $service = Get-Service | Where {$_.Name -eq $serviceName}
+    if ($service) {
+        Stop-Service $service
+        sc.exe delete $serviceName
+    }
+}
+
+foreach ($pythonName in @("Python", "Python27")) {
+    $pythonProcesses = Get-Process | Where {$_.Path -eq "C:\OpenStack\cloudbase\nova\$pythonName\python.exe"}
+    foreach($p in $pythonProcesses) {
+        Write-Warning "Killing OpenStack Python process. This process should not be alive!"
+        $p | kill -Force
+    }
 }
 
 $appPath = "C:\OpenStack\cloudbase\nova"
