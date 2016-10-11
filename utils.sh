@@ -28,7 +28,7 @@ function get_win_files() {
     local host=$1
     local remote_dir=$2
     local local_dir=$3
-    smbclient "//$host/C\$" -c "lcd $local_dir; cd $remote_dir; prompt; mget *" -U "$win_user%$win_password"
+    smbclient "//$host/C\$" -c "lcd $local_dir; cd $remote_dir; prompt; mget *" -U "$win_user%$win_password" --max-protocol=SMB3
 }
 
 function run_wsman_ps() {
@@ -49,7 +49,7 @@ function get_win_hotfixes() {
 
 function get_win_system_info() {
     local host=$1
-    run_wsman_cmd $host "systeminfo"
+    run_wsman_cmd $host "wmic os ; wmic computersystem; wmic cpu ; Get-Disk | Format-List ; ipconfig /all"
 }
 
 function get_win_time() {
