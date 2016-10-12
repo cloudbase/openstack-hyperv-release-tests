@@ -49,7 +49,7 @@ function get_win_hotfixes() {
 
 function get_win_system_info() {
     local host=$1
-    run_wsman_cmd $host "wmic os ; wmic computersystem; wmic cpu ; Get-Disk | Format-List ; ipconfig /all"
+    run_wsman_ps $host "wmic os ; wmic computersystem; wmic cpu ; \"Get-Disk | Format-List\" ; ipconfig /all"
 }
 
 function get_win_time() {
