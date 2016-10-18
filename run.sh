@@ -20,7 +20,7 @@ function setup_win_host() {
         if(\$LASTEXITCODE) { throw \\\"git clone failed\\\" }
     } else {
         cd $repo_dir;
-        git pull;
+        
         if(\$LASTEXITCODE) { throw \\\"git pull failed\\\" }
     }"
     run_wsman_ps $win_host "$cmd"
@@ -486,12 +486,17 @@ do
     scp -i $ssh_key $temp_setup_dir/local.conf "$CONTAINER_USER@$DEVSTACK_IP_ADDR:$devstack_dir/local.conf"
     scp -i $ssh_key $temp_setup_dir/local.sh "$CONTAINER_USER@$DEVSTACK_IP_ADDR:$devstack_dir/local.sh"
 
+    use_ovs=(`get_config_use_ovs $test_name`)
+    if [ "$use_ovs" = True ]; then
+        # set endpoint ip on eth1 on the devstack_container
+        run_ssh $DEVSTACK_IP_ADDR "sudo ifconfig eth1 ${devstack_config[TUNNEL_ENDPOINT_IP]}/24" $ssh_key
+    fi
+
     pids=()
     run_ssh $DEVSTACK_IP_ADDR "source $container_test_dir/utils.sh ; exec_with_retry 1 0 stack_devstack $container_devstack_logs $devstack_dir" $ssh_key &
     pids+=("$!")
 
     host_names=(`get_config_test_hosts $test_name`)
-    use_ovs=(`get_config_use_ovs $test_name`)
     for host_name in ${host_names[@]};
     do
         setup_compute_host $test_name $host_name $use_ovs &
