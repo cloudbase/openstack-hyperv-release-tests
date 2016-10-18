@@ -20,7 +20,7 @@ function setup_win_host() {
         if(\$LASTEXITCODE) { throw \\\"git clone failed\\\" }
     } else {
         cd $repo_dir;
-        git pull;
+        
         if(\$LASTEXITCODE) { throw \\\"git pull failed\\\" }
     }"
     run_wsman_ps $win_host "$cmd"
