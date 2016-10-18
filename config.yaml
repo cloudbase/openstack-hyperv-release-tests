@@ -4,7 +4,7 @@ HyperV2016_VHDX:
   devstack:
     live_migration: false
     allow_resize_to_same_host: true
-    image_url: https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64.vhdx.gz
+    image_url: https://cloudbase.it/downloads/cirros-0.3.4-x86_64.vhdx.gz
     heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhdx.gz
   hosts:
     NUCHVTHTP01:
@@ -16,14 +16,14 @@ HyperV2016_VHDX:
         DEFAULT:
           debug: true
         SECURITYGROUP:
-          enable_security_group: true          
+          enable_security_group: true
 HyperV2016_NIC_hotplug:
   test_suite: nichotplug
   include_default: false
   devstack:
     live_migration: false
     allow_resize_to_same_host: true
-    image_url: https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64.vhdx.gz
+    image_url: https://cloudbase.it/downloads/cirros-0.3.4-x86_64.vhdx.gz
     heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhdx.gz
   hosts:
     NUCHVTHTP01:
@@ -42,7 +42,7 @@ HyperVNano2016_VHDX:
   devstack:
     live_migration: false
     allow_resize_to_same_host: true
-    image_url: https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64.vhdx.gz
+    image_url: https://cloudbase.it/downloads/cirros-0.3.4-x86_64.vhdx.gz
     heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhdx.gz
   hosts:
     NUCNANOTP501:
@@ -60,7 +60,7 @@ HyperV2012r2_VHDX:
   devstack:
     live_migration: true
     allow_resize_to_same_host: false
-    image_url: https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64.vhdx.gz
+    image_url: https://cloudbase.it/downloads/cirros-0.3.4-x86_64.vhdx.gz
     heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhdx.gz
   hosts:
     NUCHV12R201:
@@ -112,7 +112,7 @@ HyperV2012r2_VHDX_no_CoW:
   devstack:
     live_migration: true
     allow_resize_to_same_host: false
-    image_url: https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64.vhdx.gz
+    image_url: https://cloudbase.it/downloads/cirros-0.3.4-x86_64.vhdx.gz
     heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhdx.gz
   hosts:
     NUCHV12R201:
@@ -212,7 +212,7 @@ HyperV2012r2_dynamic_memory:
   devstack:
     live_migration: true
     allow_resize_to_same_host: false
-    image_url: https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64.vhdx.gz
+    image_url: https://cloudbase.it/downloads/cirros-0.3.4-x86_64.vhdx.gz
     heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhdx.gz
   hosts:
     NUCHV12R201:
@@ -240,7 +240,7 @@ HyperV2012_VHDX:
   devstack:
     live_migration: false
     allow_resize_to_same_host: true
-    image_url: https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64.vhdx.gz
+    image_url: https://cloudbase.it/downloads/cirros-0.3.4-x86_64.vhdx.gz
     heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhdx.gz
   hosts:
     NUCHV1201:
@@ -296,7 +296,7 @@ HyperV2016_OVS_VXLAN_VHDX:
   devstack:
     live_migration: true
     allow_resize_to_same_host: false
-    image_url: https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64.vhdx.gz
+    image_url: https://cloudbase.it/downloads/cirros-0.3.4-x86_64.vhdx.gz
     heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhdx.gz
     Q_ML2_TENANT_NETWORK_TYPE: vxlan
     OVS_ENABLE_TUNNELING: true
