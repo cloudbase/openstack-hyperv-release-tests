@@ -302,7 +302,7 @@ HyperV2016_OVS_VXLAN_VHDX:
     OVS_ENABLE_TUNNELING: true
     TUNNEL_ENDPOINT_IP: 14.14.14.3
   hosts:
-    NUC01TP5OVS:
+    NUC01HV2016OVS:
       nova.conf:
         DEFAULT:
           allow_resize_to_same_host: false
@@ -323,7 +323,7 @@ HyperV2016_OVS_VXLAN_VHDX:
           integration_bridge: br-int
           tenant_network_type: vxlan
           enable_tunneling: true
-    NUC02TP5OVS:
+    NUC02HV2016OVS:
       nova.conf:
         DEFAULT:
           allow_resize_to_same_host: false
