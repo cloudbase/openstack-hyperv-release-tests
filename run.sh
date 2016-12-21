@@ -291,7 +291,10 @@ export TEST_HOST_IP_ADDR
 
 export DEVSTACK_BRANCH
 
-DEVSTACK_CONTAINER_NAME="devstack-$DEVSTACK_BRANCH"
+# we substitute the "/" character in the branch name with "-" character
+# so that the container name will look like devstack-stable-* . Using "/"
+# would cause container creation to fail.
+DEVSTACK_CONTAINER_NAME="devstack-${DEVSTACK_BRANCH/\//-}"
 export DEVSTACK_CONTAINER_NAME
 
 DEVSTACK_PASSWORD=Passw0rd
@@ -460,7 +463,7 @@ do
     sed -i "s/<%DEVSTACK_HEAT_IMAGE_FILE%>/$DEVSTACK_HEAT_IMAGE_FILE/g" $temp_setup_dir/local.conf
     sed -i "s/<%DEVSTACK_LIVE_MIGRATION%>/$DEVSTACK_LIVE_MIGRATION/g" $temp_setup_dir/local.conf
     sed -i "s/<%DEVSTACK_PASSWORD%>/$DEVSTACK_PASSWORD/g" $temp_setup_dir/local.conf
-    sed -i "s/<%DEVSTACK_BRANCH%>/$DEVSTACK_BRANCH/g" $temp_setup_dir/local.conf
+    sed -i "s#<%DEVSTACK_BRANCH%>#$DEVSTACK_BRANCH#g" $temp_setup_dir/local.conf
     sed -i "s#<%DEVSTACK_LOGS_DIR%>#$container_screen_logs#g" $temp_setup_dir/local.conf
 
 
