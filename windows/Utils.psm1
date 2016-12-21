@@ -155,10 +155,14 @@ function InstallMSI($MSIPath, $DevstackHost, $Password)
 
 function _CanOpenAsZip($FilePath)
 {
-    $OpenZip = [System.IO.Compression.ZipFile]::OpenRead($FilePath)
-    $success = $LastExitCode -eq 0
-    $OpenZip.Dispose()
-    return $success
+    try {
+        $OpenZip = [System.IO.Compression.ZipFile]::OpenRead($FilePath)
+        return $true
+    } catch [System.Management.Automation.MethodInvocationException] {
+        return $false
+    } finally {
+        $OpenZip.Dispose()
+    }
 }
 
 function IsZip($FilePath)
