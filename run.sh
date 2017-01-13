@@ -44,6 +44,13 @@ function install_compute() {
     echo "OpenStack services installed on: $win_host"
 }
 
+function cleanup_iscsi_targets() {
+    local win_host=$1
+    echo "Cleaning up old iSCSI targets on: $win_host"
+    run_wsman_ps $win_host "cd $repo_dir\\windows; .\\iscsitargets.ps1"
+    echo "Old iSCSI targets were deleted successfully on: $win_host"
+}
+
 function get_win_hotfixes_log() {
     local win_host=$1
     local log_file=$2
@@ -245,6 +252,7 @@ function setup_compute_host() {
 
     exec_with_retry 15 2 setup_win_host $host_name
     exec_with_retry 20 15 uninstall_compute $host_name
+    exec_with_retry 15 2 cleanup_iscsi_targets $host_name
     exec_with_retry 20 15 install_compute $host_name $DEVSTACK_IP_ADDR "$DEVSTACK_PASSWORD" $msi_url $use_ovs
 
     host_config_files=(`get_config_test_host_config_files $test_name $host_name`)
@@ -274,6 +282,10 @@ function enable_venv() {
 
 msi_url=$1
 DEVSTACK_BRANCH=${2:-"stable/icehouse"}
+DEVSTACK_TAG=$2
+if [ $DEVSTACK_TAG == "stable/kilo" ]; then
+    DEVSTACK_TAG="kilo-eol"
+fi
 test_suite_override=${3}
 test_names_subset=${@:4}
 
@@ -290,11 +302,13 @@ TEST_HOST_IP_ADDR=`get_host_ip_addr`
 export TEST_HOST_IP_ADDR
 
 export DEVSTACK_BRANCH
+export DEVSTACK_TAG
 
 # we substitute the "/" character in the branch name with "-" character
 # so that the container name will look like devstack-stable-* . Using "/"
 # would cause container creation to fail.
 DEVSTACK_CONTAINER_NAME="devstack-${DEVSTACK_BRANCH/\//-}"
+DEVSTACK_VOLUME_GROUP_NAME=$DEVSTACK_CONTAINER_NAME
 export DEVSTACK_CONTAINER_NAME
 
 DEVSTACK_PASSWORD=Passw0rd
@@ -456,6 +470,7 @@ do
     sed -i "s#<%DEVSTACK_IMAGES_DIR%>#$DEVSTACK_IMAGES_DIR#g" $temp_setup_dir/local.sh
     sed -i "s/<%DEVSTACK_IMAGE_FILE%>/$DEVSTACK_IMAGE_FILE/g" $temp_setup_dir/local.sh
 
+    sed -i "s#<%DEVSTACK_VOLUME_GROUP_NAME%>#$DEVSTACK_VOLUME_GROUP_NAME#g" $temp_setup_dir/local.conf
     sed -i "s/<%DEVSTACK_SAME_HOST_RESIZE%>/$DEVSTACK_SAME_HOST_RESIZE/g" $temp_setup_dir/local.conf
     sed -i "s/<%DEVSTACK_IP_ADDR%>/$DEVSTACK_IP_ADDR/g" $temp_setup_dir/local.conf
     sed -i "s#<%DEVSTACK_IMAGES_DIR%>#$DEVSTACK_IMAGES_DIR#g" $temp_setup_dir/local.conf
@@ -464,6 +479,7 @@ do
     sed -i "s/<%DEVSTACK_LIVE_MIGRATION%>/$DEVSTACK_LIVE_MIGRATION/g" $temp_setup_dir/local.conf
     sed -i "s/<%DEVSTACK_PASSWORD%>/$DEVSTACK_PASSWORD/g" $temp_setup_dir/local.conf
     sed -i "s#<%DEVSTACK_BRANCH%>#$DEVSTACK_BRANCH#g" $temp_setup_dir/local.conf
+    sed -i "s#<%DEVSTACK_TAG%>#$DEVSTACK_TAG#g" $temp_setup_dir/local.conf
     sed -i "s#<%DEVSTACK_LOGS_DIR%>#$container_screen_logs#g" $temp_setup_dir/local.conf
 
 
@@ -494,6 +510,9 @@ do
         # set endpoint ip on eth1 on the devstack_container
         run_ssh $DEVSTACK_IP_ADDR "sudo ifconfig eth1 ${devstack_config[TUNNEL_ENDPOINT_IP]}/24" $ssh_key
     fi
+
+    # this is needed for kilo
+    run_ssh $DEVSTACK_IP_ADDR "sudo DEBIAN_FRONTEND=noninteractive apt-get install mongodb -y > /dev/null ; sudo rm /var/lib/mongodb/mongod.lock ; sudo service mongodb restart > /dev/null "
 
     pids=()
     run_ssh $DEVSTACK_IP_ADDR "source $container_test_dir/utils.sh ; exec_with_retry 1 0 stack_devstack $container_devstack_logs $devstack_dir" $ssh_key &
@@ -547,10 +566,13 @@ do
     run_ssh $DEVSTACK_IP_ADDR  "mkdir -p $container_tempest_result_dir" $ssh_key
     run_ssh $DEVSTACK_IP_ADDR "cd $container_test_dir ; source $container_test_dir/utils.sh ; run_tempest $test_suite $container_tempest_result_dir $max_parallel_tests $max_attempts" $ssh_key
 
-    subunit_log_file="$test_reports_dir/subunit-output.log"
-
+    echo "Finished running tempest. Copying results from $container_tempest_result_dir to $test_reports_dir"
     copy_tempest_results $container_tempest_result_dir $test_reports_dir
 
+    subunit_log_file="$test_reports_dir/subunit-output.log"
+    if ! [ -f $subunit_log_file ]; then
+        touch $subunit_log_file
+    fi
     subunit-stats --no-passthrough "$subunit_log_file" || true
 
     copy_devstack_screen_logs $container_screen_logs $DEVSTACK_LOGS_DIR || true

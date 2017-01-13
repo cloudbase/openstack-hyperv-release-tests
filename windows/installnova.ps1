@@ -34,7 +34,7 @@ foreach ($FileName in @("$DownloadFile", "$DownloadFile.msi", "$DownloadFile.zip
 
 Invoke-FastWebRequest -Uri $InstallerUrl -OutFile $DownloadFile
 
-if (IsZip $DownloadFile) {
+if (IsZip "$pwd\$DownloadFile") {
     $ZipPath = "$pwd\$DownloadFile.zip"
     mv $DownloadFile $ZipPath
 

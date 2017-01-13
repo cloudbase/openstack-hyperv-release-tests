@@ -6,7 +6,7 @@ BASEDIR=$(dirname $0)
 function run_wsman_cmd() {
     local host=$1
     local cmd=$2
-    $BASEDIR/wsmancmd.py -u $win_user -p $win_password -U https://$1:5986/wsman $cmd
+    $BASEDIR/wsmancmd.py -u $win_user -p $win_password -U https://$host:5986/wsman $cmd
 }
 
 function run_ssh() {
@@ -49,7 +49,7 @@ function get_win_hotfixes() {
 
 function get_win_system_info() {
     local host=$1
-    run_wsman_ps $host "wmic os ; wmic computersystem; wmic cpu ; \"Get-Disk | Format-List\" ; ipconfig /all"
+    run_wsman_ps $host "\"wmic os ; wmic computersystem; wmic cpu ; Get-Disk | Format-List ; ipconfig /all\""
 }
 
 function get_win_time() {

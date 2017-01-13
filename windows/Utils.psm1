@@ -153,32 +153,31 @@ function InstallMSI($MSIPath, $DevstackHost, $Password)
     Write-Host """$MSIPath"" installed successfully"
 }
 
-function _CanOpenAsZip($FilePath)
-{
+function IsZip($FilePath) {
+    $isZip = $false
     try {
-        $OpenZip = [System.IO.Compression.ZipFile]::OpenRead($FilePath)
-        return $true
-    } catch [System.Management.Automation.MethodInvocationException] {
-        return $false
-    } finally {
-        $OpenZip.Dispose()
-    }
-}
-
-function IsZip($FilePath)
-{
-    try {
-        return _CanOpenAsZip $FilePath
-    } catch [System.Management.Automation.RuntimeException] {
-        try {
-            # Load System.IO.Compression.FileSystem.
-            # This will work on the full version of Windows Server
-            Add-Type -assembly "System.IO.Compression.FileSystem"
-            return _CanOpenAsZip $FilePath
-        } catch {
-            return $false
+        $stream = New-Object System.IO.StreamReader -ArgumentList @($FilePath)
+        $reader = New-Object System.IO.BinaryReader -ArgumentList @($stream.BaseStream)
+        $bytes = $reader.ReadBytes(4)
+        if ($bytes.Length -eq 4) {
+            if ($bytes[0] -eq 80 -and
+                $bytes[1] -eq 75 -and
+                $bytes[2] -eq 3 -and
+                $bytes[3] -eq 4) {
+                $isZip = $true
+            }
         }
     }
+    finally {
+        if ($reader) {
+            $reader.Dispose()
+        }
+        if ($stream) {
+            $stream.Dispose()
+        }
+    }
+
+    return $isZip
 }
 
 function Unzip($ZipPath, $Destination)
