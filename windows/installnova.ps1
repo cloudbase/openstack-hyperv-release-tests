@@ -6,7 +6,7 @@ Param(
  )
 
  $ErrorActionPreference = "Stop"
-[Environment]::CurrentDirectory = $pwd
+[System.IO.Directory]::SetCurrentDirectory($pwd)
 
 Import-Module .\FastWebRequest.psm1
 Import-Module .\Utils.psm1
