@@ -55,6 +55,16 @@ HyperVNano2016_VHDX:
           debug: true
         SECURITYGROUP:
           enable_security_group: true
+    NUC-NANO-02:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: true
+          debug: true
+      neutron_hyperv_agent.conf:
+        DEFAULT:
+          debug: true
+        SECURITYGROUP:
+          enable_security_group: true
 HyperV2012r2MultipleCSVS_Mitaka_VHDX:
   test_suite: default
   devstack:
