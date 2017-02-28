@@ -85,7 +85,11 @@ function InstallMSI($MSIPath, $DevstackHost, $Password)
     "FreeRDP"
     )
 
-    if($domainName) {
+    $isInCluster = Get-Service | Where { $_.Name -eq "ClusSvc" }
+
+    # Cluster migration network tags cannot be modified for a node that
+    # is inside a cluster
+    if($domainName -and !$isInCluster) {
         $features += "LiveMigration"
     }
 
