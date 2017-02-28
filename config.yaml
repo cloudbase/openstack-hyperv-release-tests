@@ -55,6 +55,70 @@ HyperVNano2016_VHDX:
           debug: true
         SECURITYGROUP:
           enable_security_group: true
+HyperV2012r2MultipleCSVS_Mitaka_VHDX:
+  test_suite: default
+  devstack:
+    live_migration: true
+    allow_resize_to_same_host: false
+    image_url: https://cloudbase.it/downloads/cirros-0.3.4-x86_64.vhdx.gz
+    heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhdx.gz
+  hosts:
+    NUCHV12R201:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: false
+          debug: true
+          compute_driver: 'hyperv.nova.cluster.driver.HyperVClusterDriver'
+          instances_path: 'C:\\ClusterStorage\\Volume1\\2012r2\\Instances\\'
+      neutron_hyperv_agent.conf:
+        DEFAULT:
+          debug: true
+        SECURITYGROUP:
+          enable_security_group: true
+    NUCHV12R202:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: false
+          debug: true
+          compute_driver: 'hyperv.nova.cluster.driver.HyperVClusterDriver'
+          instances_path: 'C:\\ClusterStorage\\Volume2\\2012r2\\Instances\\'
+      neutron_hyperv_agent.conf:
+        DEFAULT:
+          debug: true
+        SECURITYGROUP:
+          enable_security_group: true
+HyperV2012r2MultipleCSVS_NEWEST_VHDX:
+  test_suite: default
+  devstack:
+    live_migration: true
+    allow_resize_to_same_host: false
+    image_url: https://cloudbase.it/downloads/cirros-0.3.4-x86_64.vhdx.gz
+    heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhdx.gz
+  hosts:
+    NUCHV12R201:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: false
+          debug: true
+          compute_driver: 'compute_hyperv.cluster.driver.HyperVClusterDriver'
+          instances_path: 'C:\\ClusterStorage\\Volume1\\2012r2\\Instances\\'
+      neutron_hyperv_agent.conf:
+        DEFAULT:
+          debug: true
+        SECURITYGROUP:
+          enable_security_group: true
+    NUCHV12R202:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: false
+          debug: true
+          compute_driver: 'compute_hyperv.cluster.driver.HyperVClusterDriver'
+          instances_path: 'C:\\ClusterStorage\\Volume2\\2012r2\\Instances\\'
+      neutron_hyperv_agent.conf:
+        DEFAULT:
+          debug: true
+        SECURITYGROUP:
+          enable_security_group: true
 HyperV2012r2_VHDX:
   test_suite: default
   devstack:
@@ -273,23 +337,6 @@ HyperV2012_VHD_v1:
           debug: true
         AGENT:
           enable_metrics_collection: false
-HyperV2008r2:
-  test_suite: 2008r2
-  include_default: false
-  devstack:
-    live_migration: false
-    allow_resize_to_same_host: true
-    image_url: https://raw.githubusercontent.com/cloudbase/ci-overcloud-init-scripts/master/scripts/devstack_vm/cirros-0.3.3-x86_64.vhd.gz
-    heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhd.gz
-  hosts:
-    NUCHV08R201:
-      nova.conf:
-        DEFAULT:
-          allow_resize_to_same_host: true
-          debug: true
-      neutron_hyperv_agent.conf:
-        DEFAULT:
-          debug: true
 HyperV2016_OVS_VXLAN_VHDX:
   use_ovs: true
   test_suite: default
