@@ -44,6 +44,13 @@ function install_compute() {
     echo "OpenStack services installed on: $win_host"
 }
 
+function cleans_iscsi_targets() {
+    local win_host=$1
+    echo "Cleaning up old iSCSI targets on: $win_host"
+    run_wsman_ps $win_host "cd $repo_dir\\windows; .\\iscsitargets.ps1"
+    echo "Old iSCSI targets were deleted successfully on: $win_host"
+}
+
 function get_win_hotfixes_log() {
     local win_host=$1
     local log_file=$2
@@ -245,6 +252,7 @@ function setup_compute_host() {
 
     exec_with_retry 15 2 setup_win_host $host_name
     exec_with_retry 20 15 uninstall_compute $host_name
+    exec_with_retry 15 2 cleans_iscsi_targets $host_name
     exec_with_retry 20 15 install_compute $host_name $DEVSTACK_IP_ADDR "$DEVSTACK_PASSWORD" $msi_url $use_ovs
 
     host_config_files=(`get_config_test_host_config_files $test_name $host_name`)
