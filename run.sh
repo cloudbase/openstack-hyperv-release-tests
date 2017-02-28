@@ -274,6 +274,10 @@ function enable_venv() {
 
 msi_url=$1
 DEVSTACK_BRANCH=${2:-"stable/icehouse"}
+DEVSTACK_TAG=$2
+if [ $DEVSTACK_TAG == "stable/kilo" ]; then
+    DEVSTACK_TAG="kilo-eol"
+fi
 test_suite_override=${3}
 test_names_subset=${@:4}
 
@@ -290,11 +294,13 @@ TEST_HOST_IP_ADDR=`get_host_ip_addr`
 export TEST_HOST_IP_ADDR
 
 export DEVSTACK_BRANCH
+export DEVSTACK_TAG
 
 # we substitute the "/" character in the branch name with "-" character
 # so that the container name will look like devstack-stable-* . Using "/"
 # would cause container creation to fail.
 DEVSTACK_CONTAINER_NAME="devstack-${DEVSTACK_BRANCH/\//-}"
+DEVSTACK_VOLUME_GROUP_NAME=$DEVSTACK_CONTAINER_NAME
 export DEVSTACK_CONTAINER_NAME
 
 DEVSTACK_PASSWORD=Passw0rd
@@ -456,6 +462,7 @@ do
     sed -i "s#<%DEVSTACK_IMAGES_DIR%>#$DEVSTACK_IMAGES_DIR#g" $temp_setup_dir/local.sh
     sed -i "s/<%DEVSTACK_IMAGE_FILE%>/$DEVSTACK_IMAGE_FILE/g" $temp_setup_dir/local.sh
 
+    sed -i "s#<%DEVSTACK_VOLUME_GROUP_NAME%>#$DEVSTACK_VOLUME_GROUP_NAME#g" $temp_setup_dir/local.conf
     sed -i "s/<%DEVSTACK_SAME_HOST_RESIZE%>/$DEVSTACK_SAME_HOST_RESIZE/g" $temp_setup_dir/local.conf
     sed -i "s/<%DEVSTACK_IP_ADDR%>/$DEVSTACK_IP_ADDR/g" $temp_setup_dir/local.conf
     sed -i "s#<%DEVSTACK_IMAGES_DIR%>#$DEVSTACK_IMAGES_DIR#g" $temp_setup_dir/local.conf
@@ -464,6 +471,7 @@ do
     sed -i "s/<%DEVSTACK_LIVE_MIGRATION%>/$DEVSTACK_LIVE_MIGRATION/g" $temp_setup_dir/local.conf
     sed -i "s/<%DEVSTACK_PASSWORD%>/$DEVSTACK_PASSWORD/g" $temp_setup_dir/local.conf
     sed -i "s#<%DEVSTACK_BRANCH%>#$DEVSTACK_BRANCH#g" $temp_setup_dir/local.conf
+    sed -i "s#<%DEVSTACK_TAG%>#$DEVSTACK_TAG#g" $temp_setup_dir/local.conf
     sed -i "s#<%DEVSTACK_LOGS_DIR%>#$container_screen_logs#g" $temp_setup_dir/local.conf
 
 
@@ -494,6 +502,8 @@ do
         # set endpoint ip on eth1 on the devstack_container
         run_ssh $DEVSTACK_IP_ADDR "sudo ifconfig eth1 ${devstack_config[TUNNEL_ENDPOINT_IP]}/24" $ssh_key
     fi
+
+    run_ssh $DEVSTACK_IP_ADDR "sudo DEBIAN_FRONTEND=noninteractive apt-get install mongodb -y > /dev/null ; sudo rm /var/lib/mongodb/mongod.lock ; sudo service mongodb restart > /dev/null "
 
     pids=()
     run_ssh $DEVSTACK_IP_ADDR "source $container_test_dir/utils.sh ; exec_with_retry 1 0 stack_devstack $container_devstack_logs $devstack_dir" $ssh_key &
