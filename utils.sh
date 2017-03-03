@@ -135,12 +135,12 @@ function get_nova_service_hosts() {
 function check_neutron_agent_up() {
     local host_name=$1
     local agent_type=${2:-"HyperV agent"}
-    neutron agent-list |  awk 'BEGIN { FS = "[ ]*\\|[ ]+" }; {if (NR > 3 && $4 == host_name && $3 == agent_type && $6 == ":-)"){f=1}} END {exit !f}' host_name=$host_name agent_type="$agent_type"
+    neutron agent-list -c agent_type -c host -c alive | awk 'BEGIN { FS = "[ ]*\\|[ ]*" }; {if (NR > 3 && $2 == agent_type && $3 == host_name && $4 == ":-)"){f=1}} END {exit !f}' host_name=$host_name agent_type="$agent_type"
 }
 
 function get_neutron_agent_hosts() {
     local agent_type=${1:-"HyperV agent"}
-    neutron agent-list |  awk 'BEGIN { FS = "[ ]*\\|[ ]+" }; {if (NR > 3 && $3 == agent_type && $6 == ":-)"){ print $4 }}' agent_type="$agent_type"
+    neutron agent-list -c agent_type -c host -c alive | awk 'BEGIN { FS = "[ ]*\\|[ ]*" }; {if (NR > 3 && $2 == agent_type && $4 == ":-)"){ print $3 }}' agent_type="$agent_type"
 }
 
 function exec_with_retry () {
