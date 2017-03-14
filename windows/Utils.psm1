@@ -15,6 +15,10 @@ function ConfigureNovaCompute($ConfDir, $DevstackHost, $Password)
     cp .\etc\nova.conf $ConfPath
     cp .\etc\policy.json $ConfDir
 
+    # placement API
+    Set-IniFileValue -Path $ConfPath -Section "placement" -Key "password" -Value "$Password"
+    Set-IniFileValue -Path $ConfPath -Section "placement" -Key "auth_url" -Value "http://${DevstackHost}:35357/v3"
+
     # glance
     Set-IniFileValue -Path $ConfPath -Section "glance" -Key "api_servers" -Value "${DevstackHost}:9292"
 
@@ -124,6 +128,14 @@ function InstallMSI($MSIPath, $DevstackHost, $Password)
     "DYNAMICMEMORYRATIO=1 " +
     "ENABLELOGGING=1 " +
     "VERBOSELOGGING=1 " +
+
+    "PLACEMENTPROJECTNAME=service " +
+    "PLACEMENTUSERNAME=placement " +
+    "PLACEMENTPASSWORD=$Password " +
+    "PLACEMENTDOMAINNAME=Default " +
+    "PLACEMENTUSERDOMAINNAME=Default " +
+    "PLACEMENTREGIONNAME=RegionOne " +
+    "PLACEMENTAUTHURL=http://${DevstackHost}:35357/v3 " +
 
     "NEUTRONURL=http://${DevstackHost}:9696 " +
     "NEUTRONADMINTENANTNAME=service " +
