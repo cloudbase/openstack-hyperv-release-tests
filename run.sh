@@ -503,7 +503,7 @@ do
         run_ssh $DEVSTACK_IP_ADDR "sudo ifconfig eth1 ${devstack_config[TUNNEL_ENDPOINT_IP]}/24" $ssh_key
     fi
 
-    run_ssh $DEVSTACK_IP_ADDR "sudo DEBIAN_FRONTEND=noninteractive apt-get install mongodb -y > /dev/null ; sudo rm /var/lib/mongodb/mongod.lock ; sudo service mongodb restart > /dev/null "
+    run_ssh $DEVSTACK_IP_ADDR "sudo DEBIAN_FRONTEND=noninteractive apt-get install mongodb -y > /dev/null ; sudo rm /var/lib/mongodb/mongod.lock ; sudo service mongodb restart > /dev/null" $ssh_key
 
     pids=()
     run_ssh $DEVSTACK_IP_ADDR "source $container_test_dir/utils.sh ; exec_with_retry 1 0 stack_devstack $container_devstack_logs $devstack_dir" $ssh_key &
