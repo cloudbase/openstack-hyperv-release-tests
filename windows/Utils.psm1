@@ -9,11 +9,16 @@ function ConfigureOsloMessaging($ConfPath, $DevstackHost, $Password)
     Set-IniFileValue -Path $ConfPath -Section "oslo_messaging_rabbit" -Key "rabbit_password" -Value "$Password"
 }
 
-function ConfigureNovaCompute($ConfDir, $DevstackHost, $Password)
+function ConfigureNovaCompute($ConfDir, $DevstackHost, $Password, $Version)
 {
     $ConfPath = Join-Path $ConfDir "nova.conf"
     cp .\etc\nova.conf $ConfPath
     cp .\etc\policy.json $ConfDir
+
+    # 14.x.x is equivalent with Newton
+    if ($Version -lt "14.0.0") {
+        Set-IniFileValue -Path $ConfPath -Section "DEFAULT" -Key "compute_driver" -Value "hyperv.nova.driver.HyperVDriver"
+    }
 
     # placement API
     Set-IniFileValue -Path $ConfPath -Section "placement" -Key "password" -Value "$Password"
@@ -169,32 +174,32 @@ function InstallMSI($MSIPath, $DevstackHost, $Password)
     Write-Host """$MSIPath"" installed successfully"
 }
 
-function _CanOpenAsZip($FilePath)
-{
-    try {
-        $OpenZip = [System.IO.Compression.ZipFile]::OpenRead($FilePath)
-        return $true
-    } catch [System.Management.Automation.MethodInvocationException] {
-        return $false
-    } finally {
-        $OpenZip.Dispose()
-    }
-}
-
 function IsZip($FilePath)
 {
+    $isZip = $false
     try {
-        return _CanOpenAsZip $FilePath
-    } catch [System.Management.Automation.RuntimeException] {
-        try {
-            # Load System.IO.Compression.FileSystem.
-            # This will work on the full version of Windows Server
-            Add-Type -assembly "System.IO.Compression.FileSystem"
-            return _CanOpenAsZip $FilePath
-        } catch {
-            return $false
+        $stream = New-Object System.IO.StreamReader -ArgumentList @($FilePath)
+        $reader = New-Object System.IO.BinaryReader -ArgumentList @($stream.BaseStream)
+        $bytes = $reader.ReadBytes(4)
+        if ($bytes.Length -eq 4) {
+            if ($bytes[0] -eq 80 -and
+                $bytes[1] -eq 75 -and
+                $bytes[2] -eq 3 -and
+                $bytes[3] -eq 4) {
+                $isZip = $true
+            }
         }
     }
+    finally {
+        if ($reader) {
+            $reader.Dispose()
+        }
+        if ($stream) {
+            $stream.Dispose()
+        }
+    }
+
+    return $isZip
 }
 
 function Unzip($ZipPath, $Destination)
@@ -233,21 +238,49 @@ function InstallZip($ZipPath, $DevstackHost, $Password)
     echo "Unzipping $ZipPath..."
     Unzip $ZipPath $OpenStackInstallDir
 
+    $command = @("$PythonDir\python", "-m", "pip", "freeze")
+    # Setting ErrorActionPreference to SilentlyContinue is need on Nano
+    # because the warning received by using a smaller version of pip
+    # is interpreted as an error
+    $ErrorActionPreference = "SilentlyContinue"
+    $result = & cmd.exe /c $command[0] $command[1..$command.Length] 2>NULL
+    $ErrorActionPreference = "Stop"
+    $output = $result | Where-Object { $_ -match '^nova=='}
+    # Getting the version from the output. i.e. nova==14.0.0
+    $version = $output.Split("=")[2]
+
     echo "Writing configuration files..."
     mkdir $ConfigDir
-    ConfigureNovaCompute $ConfigDir $DevstackHost $Password
+    ConfigureNovaCompute $ConfigDir $DevstackHost $Password $version
     ConfigureNeutronHyperVAgent $ConfigDir $DevstackHost $Password
     ConfigureCeilometerPollingAgent $ConfigDir $DevstackHost $Password
 
+    echo "Updating Wrappers..."
+    $updateWrapper = Join-Path $PythonScriptsDir 'UpdateWrappers.py'
+
+    $command = @("$PythonDir\python", $updateWrapper, "`"nova-compute = nova.cmd.compute:main`"")
+    & $command[0] $command[1..$command.Length]
+
+    $neutronMain = "`"neutron-hyperv-agent = neutron.cmd.eventlet.plugins.hyperv_neutron_agent:main`""
+    if ($version -ge "13.0.0") {
+        # Versions greater than Mitaka
+        $neutronMain = "`"neutron-hyperv-agent = hyperv.neutron.l2_agent:main`""
+    }
+    $command = @("$PythonDir\python", $updateWrapper, $neutronMain)
+    & $command[0] $command[1..$command.Length]
+
+    $command = @("$PythonDir\python", $updateWrapper, "`"ceilometer-polling = ceilometer.cmd.polling:main`"")
+    & $command[0] $command[1..$command.Length]
+
     echo "Registering services..."
 
-    $Binary = "`"$OpenStackService`" nova-compute `"$PythonDir\python`" `"$PythonScriptsDir\nova-compute-script.py`" --config-file `"$NovaConf`""
+    $Binary = "`"$OpenStackService`" nova-compute `"$PythonScriptsDir\nova-compute.exe`" --config-file `"$NovaConf`""
     sc.exe create nova-compute binPath= `"$Binary`" type= own start= auto error= ignore depend= Winmgmt displayname= "OpenStack Nova Compute Service" obj= LocalSystem
 
-    $Binary = "`"$OpenStackService`" neutron-hyperv-agent `"$PythonDir\python`" `"$PythonScriptsDir\neutron-hyperv-agent-script.py`" --config-file `"$NeutronConf`""
+    $Binary = "`"$OpenStackService`" neutron-hyperv-agent `"$PythonScriptsDir\neutron-hyperv-agent.exe`" --config-file `"$NeutronConf`""
     sc.exe create neutron-hyperv-agent binPath= `"$Binary`" type= own start= auto error= ignore depend= Winmgmt displayname= "OpenStack Neutron Hyper-V Agent Service" obj= LocalSystem
 
-    $Binary = "`"$OpenStackService`" ceilometer-polling `"$PythonDir\python`" `"$PythonScriptsDir\ceilometer-polling-script.py`" --config-file `"$CeilometerConf`""
+    $Binary = "`"$OpenStackService`" ceilometer-polling `"$PythonScriptsDir\ceilometer-polling.exe`" --config-file `"$CeilometerConf`""
     sc.exe create ceilometer-polling binPath= `"$Binary`" type= own start= auto error= ignore depend= Winmgmt displayname= "OpenStack Ceilometer Polling Agent Service" obj= LocalSystem
 
     echo "$zipPath successfully installed!"

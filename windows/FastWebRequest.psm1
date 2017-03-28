@@ -17,7 +17,7 @@ function Invoke-FastWebRequest
             $assembly = [System.Reflection.Assembly]::LoadWithPartialName("System.Net.Http")
         }
 
-        [Environment]::CurrentDirectory = (pwd).Path
+        [System.IO.Directory]::SetCurrentDirectory($pwd)
 
         if(!$OutFile)
         {
