@@ -8,13 +8,16 @@ else
     . $BASEDIR/functions-common
 fi
 
-nova flavor-delete 42
+# git will show the current branch with * in front
+branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
+if [[ "$branch" != "stable/ocata" ]] || [[ "$branch" != "master" ]]; then
+    nova flavor-delete 42
+    nova flavor-delete 84
+    nova flavor-delete 451
+fi
+
 nova flavor-create m1.nano 42 128 1 1
-
-nova flavor-delete 84
 nova flavor-create m1.micro 84 128 2 1
-
-nova flavor-delete 451
 nova flavor-create m1.heat 451 512 5 1
 
 # Add DNS config to the private network

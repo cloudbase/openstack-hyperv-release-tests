@@ -545,6 +545,10 @@ do
 
     exec_with_retry 30 2 check_host_services_count ${#host_names[@]} \"$neutron_agent_type\"
 
+    if [[ "$DEVSTACK_BRANCH" == "stable/ocata" ]] || [[ "$DEVSTACK_BRANCH" == "master" ]]; then
+        run_ssh $DEVSTACK_IP_ADDR "url=`grep transport_url /etc/nova/nova-dhcpbridge.conf | awk '{print \$3}'` ; nova-manage cell_v2 simple_cell_setup --transport-url \$url >> \"$HOME/devstack_logs/create_cell.log\"" $ssh_key
+    fi
+
     if [ $test_suite_override ]; then
         test_suite=$test_suite_override
     else
