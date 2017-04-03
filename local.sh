@@ -10,7 +10,7 @@ fi
 
 # git will show the current branch with * in front
 branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
-if [[ "$branch" != "stable/ocata" ]] || [[ "$branch" != "master" ]]; then
+if [[ "$branch" != "stable/ocata" ]] && [[ "$branch" != "master" ]]; then
     nova flavor-delete 42
     nova flavor-delete 84
     nova flavor-delete 451
