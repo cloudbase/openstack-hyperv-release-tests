@@ -31,6 +31,10 @@ iniset $TEMPEST_CONFIG compute-feature-enabled rdp_console true
 iniset $TEMPEST_CONFIG compute-feature-enabled block_migrate_cinder_iscsi <%DEVSTACK_LIVE_MIGRATION%>
 iniset $TEMPEST_CONFIG compute-feature-enabled interface_attach <%DEVSTACK_INTERFACE_ATTACH%>
 
+# we don't support volume swap in the Hyper-V Driver.
+iniset $TEMPEST_CONFIG compute-feature-enabled swap_volume false
+
+
 iniset $TEMPEST_CONFIG validation run_validation true
 
 iniset $TEMPEST_CONFIG scenario img_dir <%DEVSTACK_IMAGES_DIR%>
