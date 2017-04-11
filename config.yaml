@@ -7,7 +7,7 @@ HyperV2016_VHDX:
     image_url: https://cloudbase.it/downloads/cirros-0.3.4-x86_64.vhdx.gz
     heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhdx.gz
   hosts:
-    NUCHVTHTP01:
+    NUCHV1601:
       nova.conf:
         DEFAULT:
           allow_resize_to_same_host: true
@@ -26,7 +26,7 @@ HyperV2016_NIC_hotplug:
     image_url: https://cloudbase.it/downloads/cirros-0.3.4-x86_64.vhdx.gz
     heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhdx.gz
   hosts:
-    NUCHVTHTP01:
+    NUCHV1601:
       nova.conf:
         DEFAULT:
           allow_resize_to_same_host: true
