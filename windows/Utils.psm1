@@ -136,7 +136,7 @@ function ConfigureCeilometerPollingAgent($ConfDir, $DevstackHost, $Password)
     ConfigureOsloMessaging $ConfPath $DevstackHost $Password
 }
 
-function InstallMSI($MSIPath, $DevstackHost, $Password)
+function InstallComputeMSI($MSIPath, $DevstackHost, $Password)
 {
     $domainInfo = gwmi Win32_NTDomain
     if($domainInfo.DomainName) {
@@ -231,6 +231,51 @@ function InstallMSI($MSIPath, $DevstackHost, $Password)
     Write-Host """$MSIPath"" installed successfully"
 }
 
+function InstallCinderMSI($MSIPath, $DevstackHost, $Password, $Features)
+{
+    $msiLogPath="C:\OpenStack\Log\install_log.txt"
+    $logDir = split-path $msiLogPath
+    if(!(Test-Path $logDir)) {
+        mkdir $logDir
+    }
+
+    $enableIscsi = [int]$Features.Contains('iscsiDriver')
+    $enableSmb = [int]$Features.Contains('smbDriver')
+    $smbShareList = '{"\\\\127.0.0.1\\cinder_smb_share":{"username":"Administrator","password":"Passw0rd"}}'
+
+    $msiArgs = "/i $MSIPath /qn /l*v $msiLogPath " + `
+
+    "ADDLOCAL=" + ($features -join ",") + " " +
+
+    "INSTALLDIR=C:\OpenStack\cloudbase\cinder " +
+    "CINDERCONFFOLDER=C:\OpenStack\cloudbase\cinder\etc " +
+    "LOGDIR=C:\OpenStack\Log " +
+
+    "RPCBACKEND=cinder.rpc.impl_kombu " +
+    "RPCBACKENDHOST=$DevstackHost " +
+    "RPCBACKENDUSER=stackrabbit " +
+    "RPCBACKENDPASSWORD=$Password " +
+
+    "GLANCEHOST=http://$DevstackHost " +
+    "CINDERSQLCONNECTION=mysql://root:$Password@$DevstackHost/cinder?charset=utf8 " +
+
+    "ISCSIDRIVERENABLED=$enableIscsi " +
+    "CHAPENABLED=1 " +
+
+    "SMBDRIVERENABLED=$enableSmb " +
+    "SHARELISTJSON=$smbShareList " +
+
+    "ENABLELOGGING=1 " +
+    "VERBOSELOGGING=1 "
+
+    Write-Host "Installing ""$MSIPath"""
+
+    $p = Start-Process -Wait "msiexec.exe" -ArgumentList $msiArgs -PassThru
+    if($p.ExitCode) { throw "msiexec failed" }
+
+    Write-Host """$MSIPath"" installed successfully"
+}
+
 function IsZip($FilePath)
 {
     $isZip = $false
@@ -277,7 +322,7 @@ function Unzip($ZipPath, $Destination)
     }
 }
 
-function InstallZip($ZipPath, $DevstackHost, $Password)
+function InstallComputeZip($ZipPath, $DevstackHost, $Password)
 {
     $OpenStackDir = 'C:\OpenStack\'
     $OpenStackLogDir = Join-Path $OpenStackDir 'Log'

@@ -38,12 +38,12 @@ if (IsZip "$pwd\$DownloadFile") {
     $ZipPath = "$pwd\$DownloadFile.zip"
     mv $DownloadFile $ZipPath
 
-    InstallZip $ZipPath $DevstackHost $Password
+    InstallComputeZip $ZipPath $DevstackHost $Password
 } else {
     $MSIPath = "$pwd\$DownloadFile.msi"
     mv $DownloadFile $MSIPath
 
-    InstallMSI $MSIPath $DevstackHost $Password
+    InstallComputeMSI $MSIPath $DevstackHost $Password
 }
 
 if ($UseOvs) {
