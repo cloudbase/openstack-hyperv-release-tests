@@ -619,6 +619,9 @@ done
 echo "Destroying lxc container $DEVSTACK_CONTAINER_NAME"
 destroy_container $DEVSTACK_CONTAINER_NAME
 
+echo "Clearing loopback devices used by the container"
+clear_loop_devices $DEVSTACK_CONTAINER_NAME
+
 echo "Done!"
 
 exit $has_failed_tests
