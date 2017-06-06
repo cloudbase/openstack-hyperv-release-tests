@@ -322,7 +322,7 @@ stack_base_dir="/opt/stack"
 tempest_dir="$stack_base_dir/tempest"
 config_file="config.yaml"
 max_parallel_tests=8
-max_attempts=5
+max_attempts=0
 tcp_ports=(5672 5000 9292 9696 35357)
 ssh_key="$HOME/.ssh/container_rsa"
 
