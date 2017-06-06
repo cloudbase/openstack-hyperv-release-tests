@@ -337,6 +337,13 @@ function destroy_container() {
     sudo lxc-destroy -n $container_name || true
 }
 
+function clear_loop_devices() {
+    local container_name=$1
+    # expected output of losetup --all:
+    #/dev/loop1: [fc00]:23465059 (/opt/stack/data/devstack-stable-ocata-lvmdriver-1-backing-file
+    sudo losetup --all | grep $container_name | awk -F':' '{print $1}' | xargs sudo losetup --detach
+}
+
 function run_tempest() {
     local test_suite=$1
     local test_logs_dir=$2
