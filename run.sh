@@ -622,6 +622,9 @@ destroy_container $DEVSTACK_CONTAINER_NAME
 echo "Clearing loopback devices used by the container"
 clear_loop_devices $DEVSTACK_CONTAINER_NAME
 
+echo "Clearing container from known hosts"
+ssh-keygen -f ~/.ssh/known_hosts -R $DEVSTACK_IP_ADDR
+
 echo "Done!"
 
 exit $has_failed_tests
