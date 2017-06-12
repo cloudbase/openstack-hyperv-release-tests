@@ -202,18 +202,45 @@ function setup_compute_host() {
     done
 }
 
+# parameter initialization.
 msi_url=$1
-DEVSTACK_BRANCH=${2:-"stable/icehouse"}
-DEVSTACK_TAG=$2
+shift
+
+while [[ $# -gt 0 ]]
+do
+    key=$1
+    case $key in
+        --branch)
+        DEVSTACK_BRANCH=$2
+        DEVSTACK_TAG=$2
+        shift # past argument
+        ;;
+        --test_suite|--test-suite)
+        test_suite_override=$2
+        shift
+        ;;
+        --*)
+            # unknown option
+            echo "Usage: $0 <msi_url> [--branch <devstack_branch>] [--test-suite <test_suite>] [test_name]+"
+            exit 1
+        ;;
+        *)
+            # not a keyword argument. break.
+            break
+        ;;
+    esac
+    shift
+done
+
+test_names_subset=${@}
+
 if [ $DEVSTACK_TAG == "stable/kilo" ]; then
     DEVSTACK_TAG="kilo-eol"
 fi
-test_suite_override=${3}
-test_names_subset=${@:4}
 
 if [ -z "$msi_url" ];
 then
-    echo "Usage: $0 <msi_url> [devstack_branch] [test_suite] [test_name]+"
+    echo "Usage: $0 <msi_url> [--branch <devstack_branch>] [--test-suite <test_suite>] [test_name]+"
     exit 1
 fi
 
