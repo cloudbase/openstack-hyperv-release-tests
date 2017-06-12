@@ -3,25 +3,13 @@ set -e
 
 BASEDIR=$(dirname $0)
 
+
+### Windows specific utils
+
 function run_wsman_cmd() {
     local host=$1
     local cmd=$2
     $BASEDIR/wsmancmd.py -u $win_user -p $win_password -U https://$1:5986/wsman $cmd
-}
-
-function run_ssh() {
-    local host=$1;
-    local command=$2;
-    local ssh_key=$3;
-    ssh -o StrictHostKeyChecking=no -i $ssh_key "$USER@$host" $command
-}
-
-function run_scp() {
-    local host=$1
-    local source_file=$2
-    local destination_file=$3
-    local ssh_key=$4
-    scp -i $ssh_key $source_file $destination_file
 }
 
 function get_win_files() {
@@ -60,6 +48,16 @@ function get_win_time() {
     echo ${host_time::-1}
 }
 
+function get_win_host_config_files() {
+    local host_name=$1
+    local host_config_dir=$2
+    local local_dir=$3
+    mkdir -p $local_dir
+
+    local host_config_dir_esc=`run_wsman_ps $host_name "cd $repo_dir\\windows; Import-Module .\ShortPath.psm1; Get-ShortPathName \\\\\"$host_config_dir\\\\\"" 2>&1`
+    get_win_files $host_name "${host_config_dir_esc#*:}" $local_dir
+}
+
 function set_win_config_file_entry() {
     local win_host=$1
     local host_config_file_path=$2
@@ -69,36 +67,71 @@ function set_win_config_file_entry() {
     run_wsman_ps $win_host "cd $repo_dir\\windows; Import-Module .\ini.psm1; Set-IniFileValue -Path \\\"$host_config_file_path\\\" -Section $config_section -Key $entry_name -Value $entry_value"
 }
 
+function get_win_hotfixes_log() {
+    local win_host=$1
+    local log_file=$2
+    echo "Getting hotfixes details for host: $win_host"
+    get_win_hotfixes $win_host > $log_file
+}
+
+function get_win_system_info_log() {
+    local win_host=$1
+    local log_file=$2
+    echo "Getting system info for host: $win_host"
+    get_win_system_info $win_host > $log_file
+}
+
+function get_win_host_log_files() {
+    local host_name=$1
+    local host_logs_dir=$2
+    local local_dir=$3
+    get_win_files $host_name "$host_logs_dir" $local_dir
+}
+
+
+# Linux specific utils
+
+function check_host_time() {
+    local host=$1
+    host_time=`get_win_time $host`
+    local_time=`date +%s`
+
+    local delta=$((local_time - host_time))
+    if [ ${delta#-} -gt 300 ];
+    then
+        echo "Host $host time offset compared to this host is too high: $delta"
+        return 1
+    fi
+}
+
+function run_ssh() {
+    local host=$1;
+    local command=$2;
+    local ssh_key=$3;
+    ssh -o StrictHostKeyChecking=no -i $ssh_key "$USER@$host" $command
+}
+
+function run_scp() {
+    local host=$1
+    local source_file=$2
+    local destination_file=$3
+    local ssh_key=$4
+    scp -i $ssh_key $source_file $destination_file
+}
+
+function clear_loop_devices() {
+    local container_name=$1
+    # expected output of losetup --all:
+    #/dev/loop1: [fc00]:23465059 (/opt/stack/data/devstack-stable-ocata-lvmdriver-1-backing-file
+    sudo losetup --all | grep $container_name | awk -F':' '{print $1}' | xargs sudo losetup --detach
+}
+
 function push_dir() {
     pushd . > /dev/null
 }
 
 function pop_dir() {
     popd > /dev/null
-}
-
-function clone_pull_repo() {
-    local repo_dir=$1
-    local repo_url=$2
-    local repo_branch=${3:-"master"}
-
-    push_dir
-    if [ -d "$repo_dir/.git" ]; then
-        cd $repo_dir
-        git fetch origin $repo_branch
-        git checkout $repo_branch
-        git reset --hard
-        git clean -f -d
-        git pull
-    else
-        cd `dirname $repo_dir`
-        git clone $repo_url
-        cd $repo_dir
-        if [ "$repo_branch" != "master" ]; then
-            git checkout -b $repo_branch origin/$repo_branch
-        fi
-    fi
-    pop_dir
 }
 
 function check_get_image() {
@@ -143,6 +176,25 @@ function get_neutron_agent_hosts() {
     neutron agent-list -c agent_type -c host -c alive | awk 'BEGIN { FS = "[ ]*\\|[ ]*" }; {if (NR > 3 && $2 == agent_type && $4 == ":-)"){ print $3 }}' agent_type="$agent_type"
 }
 
+function check_host_services_count() {
+    local expected_hosts_count=$1
+    local neutron_agent_type=${2:-"HyperV agent"}
+
+    local nova_compute_hosts=`get_nova_service_hosts | wc -l`
+    if [ $expected_hosts_count -ne $nova_compute_hosts ]; then
+        echo "Current active nova-compute services: $nova_compute_hosts expected: $expected_hosts_count"
+        return 1
+    fi
+
+    local hyperv_agent_hosts=`get_neutron_agent_hosts "$neutron_agent_type" | wc -l`
+    # we error out only if we have less than the expected number of agent hosts. In case we use
+    # ovs neutron agent, we will have an extra agent on the controller.
+    if [ $expected_hosts_count -gt $hyperv_agent_hosts ]; then
+        echo "Current active neutron Hyper-V agents: $hyperv_agent_hosts expected: $expected_hosts_count"
+        return 1
+    fi
+}
+
 function exec_with_retry () {
     local max_retries=$1
     local interval=${2}
@@ -164,9 +216,13 @@ function exec_with_retry () {
     return $exit_code
 }
 
-function get_container_ip_addr() {
-     local container_name=$1
-     sudo lxc-info -n $container_name | grep IP | awk 'BEGIN { FS = ":[ ]*" } ; { print $2 }'
+function enable_venv() {
+    local venvdir=$1
+
+    if [ ! -d "$venvdir" ]; then
+        virtualenv $venvdir
+    fi
+    source "$venvdir/bin/activate"
 }
 
 function get_host_ip_addr() {
@@ -229,32 +285,6 @@ function add_user_to_passwordless_sudoers() {
     fi
 }
 
-function pull_all_git_repos() {
-    local parent_dir=$1
-    local branch_name=$2
-    local remote_name=origin
-
-    for d in $parent_dir/*/; do
-        if [ -d "$d/.git" ]; then
-            pushd .
-            echo $d
-            cd $d
-            if [[ `git branch -r --list $remote_name/$branch_name` ]]; then
-                local repo_branch_name=$branch_name
-            else
-                local repo_branch_name=master
-            fi
-            git fetch $remote_name
-            git checkout $repo_branch_name
-            git reset --hard
-            git clean -f -d
-            find . -name *.pyc -delete
-            git pull $remote_name $repo_branch_name
-            popd
-        fi
-    done
-}
-
 function stack_devstack() {
     local log_dir=$1
     local devstack_dir=$2
@@ -286,6 +316,82 @@ function unstack_devstack() {
 
     pop_dir
     return $ret_val
+}
+
+function run_tempest() {
+    local test_suite=$1
+    local test_logs_dir=$2
+    local max_parallel_tests=$3
+    local max_attempts=$4
+    local tempest_dir="/opt/stack/tempest"
+    subunit_log_file="$test_logs_dir/subunit-output.log"
+    html_results_file="$test_logs_dir/results.html"
+
+    $BASEDIR/run-all-tests.sh $tempest_dir $max_parallel_tests $max_attempts \
+    $test_suite "$subunit_log_file" "$html_results_file" \
+    > $test_logs_dir/out.txt 2> $test_logs_dir/err.txt \
+   || has_failed_tests=1
+}
+
+
+# git specific utils
+
+function clone_pull_repo() {
+    local repo_dir=$1
+    local repo_url=$2
+    local repo_branch=${3:-"master"}
+
+    push_dir
+    if [ -d "$repo_dir/.git" ]; then
+        cd $repo_dir
+        git fetch origin $repo_branch
+        git checkout $repo_branch
+        git reset --hard
+        git clean -f -d
+        git pull
+    else
+        cd `dirname $repo_dir`
+        git clone $repo_url
+        cd $repo_dir
+        if [ "$repo_branch" != "master" ]; then
+            git checkout -b $repo_branch origin/$repo_branch
+        fi
+    fi
+    pop_dir
+}
+
+function pull_all_git_repos() {
+    local parent_dir=$1
+    local branch_name=$2
+    local remote_name=origin
+
+    for d in $parent_dir/*/; do
+        if [ -d "$d/.git" ]; then
+            pushd .
+            echo $d
+            cd $d
+            if [[ `git branch -r --list $remote_name/$branch_name` ]]; then
+                local repo_branch_name=$branch_name
+            else
+                local repo_branch_name=master
+            fi
+            git fetch $remote_name
+            git checkout $repo_branch_name
+            git reset --hard
+            git clean -f -d
+            find . -name *.pyc -delete
+            git pull $remote_name $repo_branch_name
+            popd
+        fi
+    done
+}
+
+
+# Container specific utils
+
+function get_container_ip_addr() {
+     local container_name=$1
+     sudo lxc-info -n $container_name | grep IP | awk 'BEGIN { FS = ":[ ]*" } ; { print $2 }'
 }
 
 function create_container_template() {
@@ -329,6 +435,27 @@ function create_container_template() {
      sudo lxc-destroy -n $container_name
 }
 
+function start_container() {
+#import container from archive. if it does not exist, create template.
+     local container_name=$1
+     local container_templates_path="/$HOME/devstack_lxc_containers"
+     local container_template_name="$container_name-template.tar.gz"
+     local template_file="$container_templates_path/$container_template_name"
+     local container_config_file_path="$container_templates_path/devstack_lxc.conf"
+     local lxc_dir="/var/lib/lxc"
+
+     if [ ! -f $template_file ];
+     then
+    echo "No container template found for $container_name. Creating one."
+        create_container_template $container_name $container_config_file_path $CONTAINER_USER $CONTAINER_PASSWORD $ssh_key
+     fi
+
+     sudo mkdir -p "$lxc_dir/$container_name"
+     sudo tar -xvf $template_file -C "$lxc_dir/$container_name"
+     sudo lxc-start -n $container_name -d
+     sleep 10
+}
+
 function destroy_container() {
     local container_name=$1
 
@@ -336,26 +463,3 @@ function destroy_container() {
     sleep 10
     sudo lxc-destroy -n $container_name || true
 }
-
-function clear_loop_devices() {
-    local container_name=$1
-    # expected output of losetup --all:
-    #/dev/loop1: [fc00]:23465059 (/opt/stack/data/devstack-stable-ocata-lvmdriver-1-backing-file
-    sudo losetup --all | grep $container_name | awk -F':' '{print $1}' | xargs sudo losetup --detach
-}
-
-function run_tempest() {
-    local test_suite=$1
-    local test_logs_dir=$2
-    local max_parallel_tests=$3
-    local max_attempts=$4
-    local tempest_dir="/opt/stack/tempest"
-    subunit_log_file="$test_logs_dir/subunit-output.log"
-    html_results_file="$test_logs_dir/results.html"
-
-    $BASEDIR/run-all-tests.sh $tempest_dir $max_parallel_tests $max_attempts \
-    $test_suite "$subunit_log_file" "$html_results_file" \
-    > $test_logs_dir/out.txt 2> $test_logs_dir/err.txt \
-   || has_failed_tests=1
-}
-
