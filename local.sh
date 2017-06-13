@@ -8,13 +8,9 @@ else
     . $BASEDIR/functions-common
 fi
 
-# git will show the current branch with * in front
-branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
-if [[ "$branch" != "stable/ocata" ]] && [[ "$branch" != "master" ]]; then
-    nova flavor-delete 42
-    nova flavor-delete 84
-    nova flavor-delete 451
-fi
+nova flavor-delete 42 || $true
+nova flavor-delete 84 || $true
+nova flavor-delete 451 || $true
 
 nova flavor-create m1.nano 42 128 1 1
 nova flavor-create m1.micro 84 128 2 1
