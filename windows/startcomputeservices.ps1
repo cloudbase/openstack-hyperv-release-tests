@@ -2,17 +2,7 @@ Param (
       [String]$NeutronAgent = $(throw "-NeutronAgent is required.")
 )
 
-function Is2012OrAbove() {
-    $v = [environment]::OSVersion.Version
-    return ($v.Major -gt 6 -or ($v.Major -ge 6 -and $v.Minor -ge 2))
-}
-
-function CheckStartService($serviceName) {
-    $s = get-service | where {$_.Name -eq $serviceName}
-    if($s -and $s.Status -eq "Stopped") {
-        Start-Service $serviceName
-    }
-}
+Import-Module .\Utils.psm1
 
 if(Is2012OrAbove) {
     Get-VM instance-* | where {$_.State -eq "Running"} | Stop-VM  -Force -TurnOff

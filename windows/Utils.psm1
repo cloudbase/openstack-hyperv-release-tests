@@ -2,6 +2,63 @@ $ErrorActionPreference = "Stop"
 
 Import-Module .\ini.psm1
 
+function Is2012OrAbove() {
+    $v = [environment]::OSVersion.Version
+    return ($v.Major -gt 6 -or ($v.Major -ge 6 -and $v.Minor -ge 2))
+}
+
+function CheckStartService($ServiceName) {
+    $s = Get-Service | where {$_.Name -eq $ServiceName}
+    if($s -and $s.Status -eq "Stopped") {
+        Start-Service $ServiceName
+    }
+}
+
+function CheckStopService($ServiceName, $RemoveService=$false) {
+    $service = Get-Service | where {$_.Name -eq $ServiceName}
+    if ($service) {
+        if ($service.Status -ne "Stopped")  {
+            Stop-Service $ServiceName
+        }
+        if ($RemoveService) {
+            sc.exe delete $ServiceName
+        }
+    }
+}
+
+function UninstallProduct($Vendor, $Caption, $LogPath) {
+    try {
+        # Nano does not have gwmi.
+        $products = gwmi Win32_Product -filter "Vendor = `"$Vendor`"" | Where {$_.Caption.StartsWith($Caption)}
+    } catch {}
+
+    if ($products) {
+        $msi_log_path = Join-Path $LogPath "uninstall_log.txt"
+        $log_dir = split-path $msi_log_path
+        if(!(Test-Path $log_dir)) {
+            mkdir $log_dir
+        }
+
+        foreach($product in $products) {
+            Write-Host "Uninstalling ""$($product.Caption)"""
+            $p = Start-Process -Wait "msiexec.exe" -ArgumentList "/uninstall $($product.IdentifyingNumber) /qn /l*v $msi_log_path" -PassThru
+            if($p.ExitCode) { throw 'Uninstalling "$($product.Caption)" failed'}
+            Write-Host """$($product.Caption)"" uninstalled successfully"
+        }
+    }
+}
+
+function KillPythonProcesses($BasePythonPath) {
+    foreach ($pythonName in @("Python", "Python27")) {
+        $pythonPath = Join-Path $BasePythonPath $pythonName
+        $pythonProcesses = Get-Process | Where {$_.Path -eq "$pythonPath\python.exe"}
+        foreach($p in $pythonProcesses) {
+            Write-Warning "Killing OpenStack Python process. This process should not be alive!"
+            $p | kill -Force
+        }
+    }
+}
+
 function ConfigureOsloMessaging($ConfPath, $DevstackHost, $Password)
 {
     # oslo_messaging_rabbit
