@@ -28,9 +28,16 @@ function setup_win_host() {
 
 function uninstall_compute() {
     local win_host=$1
-    echo "Uninstalling OpenStack services on: $win_host"
+    echo "Uninstalling OpenStack compute services on: $win_host"
     run_wsman_ps $win_host "cd $repo_dir\\windows; .\\uninstallnova.ps1"
-    echo "OpenStack services uninstalled on: $win_host"
+    echo "OpenStack compute services uninstalled on: $win_host"
+}
+
+function uninstall_cinder() {
+    local win_host=$1
+    echo "Uninstalling OpenStack cinder services on: $win_host"
+    run_wsman_ps $win_host "cd $repo_dir\\windows; .\\uninstallcinder.ps1"
+    echo "OpenStack cinder services uninstalled on: $win_host"
 }
 
 function install_compute() {
@@ -39,27 +46,66 @@ function install_compute() {
     local password=$3
     local msi_url=$4
     local use_ovs=$5
-    echo "Installing OpenStack services on: $win_host"
+    echo "Installing OpenStack compute services on: $win_host"
     run_wsman_ps $win_host "cd $repo_dir\\windows; .\\installnova.ps1 -DevstackHost $devstack_host -Password $password -InstallerUrl $msi_url -UseOvs \$$use_ovs"
-    echo "OpenStack services installed on: $win_host"
+    echo "OpenStack compute services installed on: $win_host"
+}
+
+function install_cinder() {
+    local win_host=$1
+    local devstack_host=$2
+    local password=$3
+    local msi_url=$4
+    local volume_driver=$5
+    echo "Installing OpenStack cinder services on: $win_host"
+    run_wsman_ps $win_host "cd $repo_dir\\windows; .\\installcinder.ps1 -DevstackHost $devstack_host -Password $password -Installer $msi_url -VolumeDrivers $volume_driver"
+    echo "OpenStack cinder services installed on: $win_host"
 }
 
 function restart_compute_services() {
     local win_host=$1
     local neutron_service=$2
-    echo "Restarting OpenStack services on: $win_host"
+    echo "Restarting OpenStack compute services on: $win_host"
     run_wsman_ps $win_host "cd $repo_dir\\windows; .\\restartcomputeservices.ps1 -NeutronAgent $neutron_service"
+}
+
+function restart_cinder_services() {
+    local win_host=$1
+    echo "Restarting OpenStack cinder services on: $win_host"
+    run_wsman_ps $win_host "cd $repo_dir\\windows; .\\restartcinderservices.ps1"
 }
 
 function stop_compute_services() {
     local win_host=$1
     local neutron_service=$2
-    echo "Stopping OpenStack services on: $win_host"
+    echo "Stopping OpenStack compute services on: $win_host"
     run_wsman_ps $win_host "cd $repo_dir\\windows; .\\stopcomputeservices.ps1 -NeutronAgent $neutron_service"
+}
+
+function stop_cinder_services() {
+    local win_host=$1
+    echo "Stopping OpenStack cinder services on: $win_host"
+    run_wsman_ps $win_host "cd $repo_dir\\windows; .\\stopcinderservices.ps1"
 }
 
 function get_config_tests() {
     cat $config_file | python -c "import yaml; import sys; config=yaml.load(sys.stdin); print ' '.join(config.keys())"
+}
+
+function get_config_cinder_driver() {
+    local test_name=$1
+    cat $config_file | python -c "import yaml;
+import sys;
+config=yaml.load(sys.stdin);
+print config[\"$test_name\"].get('cinder_driver', 'iscsiDriver')"
+}
+
+function get_config_cinder_host() {
+    local test_name=$1
+    cat $config_file | python -c "import yaml;
+import sys;
+config=yaml.load(sys.stdin);
+print config[\"$test_name\"].get('cinder_host')"
 }
 
 function get_config_test_test_suite() {
@@ -184,7 +230,7 @@ function setup_compute_host() {
 
     exec_with_retry 15 2 setup_win_host $host_name
     exec_with_retry 20 15 uninstall_compute $host_name
-    exec_with_retry 20 15 install_compute $host_name $DEVSTACK_IP_ADDR "$DEVSTACK_PASSWORD" $msi_url $use_ovs
+    exec_with_retry 20 15 install_compute $host_name $DEVSTACK_IP_ADDR "$DEVSTACK_PASSWORD" $compute_msi_url $use_ovs
 
     host_config_files=(`get_config_test_host_config_files $test_name $host_name`)
     for host_config_file in ${host_config_files[@]};
@@ -202,14 +248,33 @@ function setup_compute_host() {
     done
 }
 
+function setup_cinder_host() {
+    local test_name=$1
+    local host_name=$2
+
+    cinder_driver=`get_config_cinder_driver $test_name`
+    echo "Configuring host: $host_name with cinder driver: $cinder_driver"
+
+    # Make sure the host's time offset is acceptable
+    check_host_time $host_name
+
+    exec_with_retry 15 2 setup_win_host $host_name
+    exec_with_retry 20 15 uninstall_cinder $host_name
+    exec_with_retry 20 15 install_cinder $host_name $DEVSTACK_IP_ADDR "$DEVSTACK_PASSWORD" $cinder_installer_url $cinder_driver
+}
+
 # parameter initialization.
-msi_url=$1
+compute_msi_url=$1
 shift
 
 while [[ $# -gt 0 ]]
 do
     key=$1
     case $key in
+        --cinder_installer_url|--cinder-installer-url)
+        cinder_installer_url=$2
+        shift # past argument
+        ;;
         --branch)
         DEVSTACK_BRANCH=$2
         DEVSTACK_TAG=$2
@@ -221,7 +286,7 @@ do
         ;;
         --*)
             # unknown option
-            echo "Usage: $0 <msi_url> [--branch <devstack_branch>] [--test-suite <test_suite>] [test_name]+"
+            echo "Usage: $0 <compute_msi_url> [--cinder-installer-url cinder_installer_url] [--branch <devstack_branch>] [--test-suite <test_suite>] [test_name]+"
             exit 1
         ;;
         *)
@@ -238,14 +303,19 @@ if [ $DEVSTACK_TAG == "stable/kilo" ]; then
     DEVSTACK_TAG="kilo-eol"
 fi
 
-if [ -z "$msi_url" ];
+if [ -z "$compute_msi_url" ];
 then
-    echo "Usage: $0 <msi_url> [--branch <devstack_branch>] [--test-suite <test_suite>] [test_name]+"
+    echo "Usage: $0 <compute_msi_url> [--cinder-installer-url cinder_installer_url] [--branch <devstack_branch>] [--test-suite <test_suite>] [test_name]+"
     exit 1
 fi
 
 # Check if the URL is valid
-wget -q --spider --no-check-certificate $msi_url || (echo "$msi_url is not a valid url"; exit 1)
+wget -q --spider --no-check-certificate $compute_msi_url || (echo "$compute_msi_url is not a valid url"; exit 1)
+
+
+if [ -n "$cinder_installer_url" ]; then
+    wget -q --spider --no-check-certificate $cinder_installer_url || (echo "$cinder_installer_url is not a valid url"; exit 1)
+fi
 
 TEST_HOST_IP_ADDR=`get_host_ip_addr`
 export TEST_HOST_IP_ADDR
@@ -271,6 +341,7 @@ repo_dir="C:\\Dev\\openstack-hyperv-release-tests"
 win_user=Administrator
 win_password=Passw0rd
 host_config_dir="C:\\OpenStack\\cloudbase\\nova\\etc"
+cinder_host_config_dir="C:\\OpenStack\\cloudbase\\cinder\\etc"
 host_logs_dir="/OpenStack/Log"
 temp_setup_dir="$HOME/temp_stack_setup"
 devstack_dir="$HOME/devstack"
@@ -361,12 +432,19 @@ do
     unset DEVSTACK_HEAT_IMAGE_FILE
     unset DEVSTACK_IMAGE_FILE
     unset DEVSTACK_IMAGES_DIR
+    unset DEVSTACK_ENABLE_DISABLE_CVOL
 
     declare -A devstack_config
     eval "devstack_config=(`get_config_test_devstack $test_name`)"
     export DEVSTACK_LIVE_MIGRATION=${devstack_config[live_migration]}
     export DEVSTACK_SAME_HOST_RESIZE=${devstack_config[allow_resize_to_same_host]}
     export DEVSTACK_INTERFACE_ATTACH=false
+    export DEVSTACK_ENABLE_DISABLE_CVOL="enable_service"
+
+    # if a Cinder URL has been given, disable c-vol in devstack.
+    if [ -n "$cinder_installer_url" ]; then
+        export DEVSTACK_ENABLE_DISABLE_CVOL="disable_service"
+    fi
 
     echo "getting images"
 
@@ -408,6 +486,7 @@ do
     sed -i "s#<%DEVSTACK_BRANCH%>#$DEVSTACK_BRANCH#g" $temp_setup_dir/local.conf
     sed -i "s#<%DEVSTACK_TAG%>#$DEVSTACK_TAG#g" $temp_setup_dir/local.conf
     sed -i "s#<%DEVSTACK_LOGS_DIR%>#$container_screen_logs#g" $temp_setup_dir/local.conf
+    sed -i "s#<%DEVSTACK_ENABLE_DISABLE_CVOL%>#$DEVSTACK_ENABLE_DISABLE_CVOL#g" $temp_setup_dir/local.conf
 
 
     if [ -n "${devstack_config[Q_ML2_TENANT_NETWORK_TYPE]}" ]; then
@@ -451,6 +530,11 @@ do
         pids+=("$!")
     done
 
+    if [ -n "$cinder_installer_url" ]; then
+        cinder_host_name=`get_config_cinder_host $test_name`
+        setup_cinder_host $test_name $cinder_host_name
+    fi
+
     for pid in ${pids[@]};
     do
         wait $pid
@@ -477,6 +561,13 @@ do
         echo "Checking if neutron Hyper-V agent is active on: $host_name"
         exec_with_retry 60 2 check_neutron_agent_up $host_name \"$neutron_agent_type\"
     done
+
+    if [ -n "$cinder_installer_url" ]; then
+        firewall_manage_ports $cinder_host_name add enable ${tcp_ports[@]}
+        exec_with_retry 5 10 restart_cinder_services $cinder_host_name
+        echo "Checking if cinder-volume service is active on: $cinder_host_name"
+        exec_with_retry 60 2 check_cinder_service_up $cinder_host_name
+    fi
 
     exec_with_retry 30 2 check_host_services_count ${#host_names[@]} \"$neutron_agent_type\"
 
@@ -505,19 +596,26 @@ do
     copy_devstack_screen_logs $container_screen_logs $DEVSTACK_LOGS_DIR || true
     copy_devstack_config_files $DEVSTACK_LOGS_DIR
 
-    for host_name in ${host_names[@]};
-    do
-        exec_with_retry 5 10 stop_compute_services $host_name $neutron_service
-        firewall_manage_ports $host_name del enable ${tcp_ports[@]}
-        exec_with_retry 15 2 get_win_host_config_files $host_name $host_config_dir "$test_config_dir/$host_name"
-    done
-
     pids=()
     for host_name in ${host_names[@]};
     do
+        exec_with_retry 5 10 stop_compute_services $host_name $neutron_service
+        exec_with_retry 15 2 get_win_host_config_files $host_name $host_config_dir "$test_config_dir/$host_name"
         exec_with_retry 20 15 uninstall_compute $host_name &
         pids+=("$!")
+    done
 
+    if [ -n "$cinder_installer_url" ]; then
+        exec_with_retry 5 10 stop_cinder_services $cinder_host_name
+        exec_with_retry 15 2 get_win_host_config_files $cinder_host_name $cinder_host_config_dir "$test_config_dir/$cinder_host_name"
+        exec_with_retry 20 15 uninstall_cinder $cinder_host_name &
+        pids+=("$!")
+        # add cinder_host_name to the host_names array for log collection.
+        host_names+=($cinder_host_name)
+    fi
+
+    for host_name in ${host_names[@]};
+    do
         mkdir -p "$test_logs_dir/$host_name"
         exec_with_retry 5 0 get_win_system_info_log $host_name "$test_logs_dir/$host_name/systeminfo.log" &
         pids+=("$!")
@@ -543,6 +641,11 @@ do
     echo "Compressing log files"
     find "$test_logs_dir/" -name "*.log" -exec gzip {} \;
 
+    for host_name in ${host_names[@]};
+    do
+        firewall_manage_ports $host_name del enable ${tcp_ports[@]}
+    done
+
     firewall_manage_ports "" del disable ${tcp_ports[@]}
 
     http_test_base_url=$http_base_url/$reports_dir_name/$test_name
@@ -554,8 +657,11 @@ done
 echo "Destroying lxc container $DEVSTACK_CONTAINER_NAME"
 destroy_container $DEVSTACK_CONTAINER_NAME
 
-echo "Clearing loopback devices used by the container"
-clear_loop_devices $DEVSTACK_CONTAINER_NAME
+if [ -z "$cinder_installer_url" ]; then
+    # no loopback device was used if a Cinder installer is given.
+    echo "Clearing loopback devices used by the container"
+    clear_loop_devices $DEVSTACK_CONTAINER_NAME
+fi
 
 echo "Clearing container from known hosts"
 ssh-keygen -f ~/.ssh/known_hosts -R $DEVSTACK_IP_ADDR
