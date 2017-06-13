@@ -2,6 +2,63 @@ $ErrorActionPreference = "Stop"
 
 Import-Module .\ini.psm1
 
+function Is2012OrAbove() {
+    $v = [environment]::OSVersion.Version
+    return ($v.Major -gt 6 -or ($v.Major -ge 6 -and $v.Minor -ge 2))
+}
+
+function CheckStartService($ServiceName) {
+    $s = Get-Service | where {$_.Name -eq $ServiceName}
+    if($s -and $s.Status -eq "Stopped") {
+        Start-Service $ServiceName
+    }
+}
+
+function CheckStopService($ServiceName, $RemoveService=$false) {
+    $service = Get-Service | where {$_.Name -eq $ServiceName}
+    if ($service) {
+        if ($service.Status -ne "Stopped")  {
+            Stop-Service $ServiceName
+        }
+        if ($RemoveService) {
+            sc.exe delete $ServiceName
+        }
+    }
+}
+
+function UninstallProduct($Vendor, $Caption, $LogPath) {
+    try {
+        # Nano does not have gwmi.
+        $products = gwmi Win32_Product -filter "Vendor = `"$Vendor`"" | Where {$_.Caption.StartsWith($Caption)}
+    } catch {}
+
+    if ($products) {
+        $msi_log_path = Join-Path $LogPath "uninstall_log.txt"
+        $log_dir = split-path $msi_log_path
+        if(!(Test-Path $log_dir)) {
+            mkdir $log_dir
+        }
+
+        foreach($product in $products) {
+            Write-Host "Uninstalling ""$($product.Caption)"""
+            $p = Start-Process -Wait "msiexec.exe" -ArgumentList "/uninstall $($product.IdentifyingNumber) /qn /l*v $msi_log_path" -PassThru
+            if($p.ExitCode) { throw 'Uninstalling "$($product.Caption)" failed'}
+            Write-Host """$($product.Caption)"" uninstalled successfully"
+        }
+    }
+}
+
+function KillPythonProcesses($BasePythonPath) {
+    foreach ($pythonName in @("Python", "Python27")) {
+        $pythonPath = Join-Path $BasePythonPath $pythonName
+        $pythonProcesses = Get-Process | Where {$_.Path -eq "$pythonPath\python.exe"}
+        foreach($p in $pythonProcesses) {
+            Write-Warning "Killing OpenStack Python process. This process should not be alive!"
+            $p | kill -Force
+        }
+    }
+}
+
 function ConfigureOsloMessaging($ConfPath, $DevstackHost, $Password)
 {
     # oslo_messaging_rabbit
@@ -79,7 +136,7 @@ function ConfigureCeilometerPollingAgent($ConfDir, $DevstackHost, $Password)
     ConfigureOsloMessaging $ConfPath $DevstackHost $Password
 }
 
-function InstallMSI($MSIPath, $DevstackHost, $Password)
+function InstallComputeMSI($MSIPath, $DevstackHost, $Password)
 {
     $domainInfo = gwmi Win32_NTDomain
     if($domainInfo.DomainName) {
@@ -174,6 +231,51 @@ function InstallMSI($MSIPath, $DevstackHost, $Password)
     Write-Host """$MSIPath"" installed successfully"
 }
 
+function InstallCinderMSI($MSIPath, $DevstackHost, $Password, $Features)
+{
+    $msiLogPath="C:\OpenStack\Log\install_log.txt"
+    $logDir = split-path $msiLogPath
+    if(!(Test-Path $logDir)) {
+        mkdir $logDir
+    }
+
+    $enableIscsi = [int]$Features.Contains('iscsiDriver')
+    $enableSmb = [int]$Features.Contains('smbDriver')
+    $smbShareList = '{"\\\\127.0.0.1\\cinder_smb_share":{"username":"Administrator","password":"Passw0rd"}}'
+
+    $msiArgs = "/i $MSIPath /qn /l*v $msiLogPath " + `
+
+    "ADDLOCAL=" + ($features -join ",") + " " +
+
+    "INSTALLDIR=C:\OpenStack\cloudbase\cinder " +
+    "CINDERCONFFOLDER=C:\OpenStack\cloudbase\cinder\etc " +
+    "LOGDIR=C:\OpenStack\Log " +
+
+    "RPCBACKEND=cinder.rpc.impl_kombu " +
+    "RPCBACKENDHOST=$DevstackHost " +
+    "RPCBACKENDUSER=stackrabbit " +
+    "RPCBACKENDPASSWORD=$Password " +
+
+    "GLANCEHOST=http://$DevstackHost " +
+    "CINDERSQLCONNECTION=mysql://root:$Password@$DevstackHost/cinder?charset=utf8 " +
+
+    "ISCSIDRIVERENABLED=$enableIscsi " +
+    "CHAPENABLED=1 " +
+
+    "SMBDRIVERENABLED=$enableSmb " +
+    "SHARELISTJSON=$smbShareList " +
+
+    "ENABLELOGGING=1 " +
+    "VERBOSELOGGING=1 "
+
+    Write-Host "Installing ""$MSIPath"""
+
+    $p = Start-Process -Wait "msiexec.exe" -ArgumentList $msiArgs -PassThru
+    if($p.ExitCode) { throw "msiexec failed" }
+
+    Write-Host """$MSIPath"" installed successfully"
+}
+
 function IsZip($FilePath)
 {
     $isZip = $false
@@ -220,7 +322,7 @@ function Unzip($ZipPath, $Destination)
     }
 }
 
-function InstallZip($ZipPath, $DevstackHost, $Password)
+function InstallComputeZip($ZipPath, $DevstackHost, $Password)
 {
     $OpenStackDir = 'C:\OpenStack\'
     $OpenStackLogDir = Join-Path $OpenStackDir 'Log'
