@@ -21,7 +21,7 @@ function InstallVCRedist2008() {
     $url = "http://download.microsoft.com/download/1/1/1/1116b75a-9ec3-481a-a3c8-1777b5381140/vcredist_x86.exe"
     Start-BitsTransfer -Source $url -Destination $filename
 
-    VerifyHash $filename "56719288ab6514c07ac2088119d8a87056eeb94a"
+    VerifyHash $filename "64B3F83567A80B9C0E2353AF7A30AD9178FC1C5F"
 
     Start-Process -Wait -FilePath $filename -ArgumentList "/q"
     del $filename
@@ -29,7 +29,7 @@ function InstallVCRedist2008() {
 
 function InstallOpenSSL() {
     if (!(Test-Path $opensslPath)) {
-        $filename = "Win32OpenSSL_Light-1_1_0d.exe"
+        $filename = "Win32OpenSSL_Light-1_1_0f.exe"
         Start-BitsTransfer -Source "http://slproweb.com/download/$filename" -Destination $filename
 
         VerifyHash $filename "9005BC602A703A394E57B8F0B95B8F9D403740DD"
