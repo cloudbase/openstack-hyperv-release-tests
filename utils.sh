@@ -148,6 +148,10 @@ function exec_with_retry () {
     local interval=${2}
     local cmd=${@:3}
 
+    # cmd might have backslashes that must be escaped. when evaluating it,
+    # the backslashes are interpreted, and they shouldn't be.
+    cmd=$(echo $cmd | sed -e 's/\\/\\\\/g')
+
     local counter=0
     while [ $counter -lt $max_retries ]; do
         local exit_code=0
