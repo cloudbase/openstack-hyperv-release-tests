@@ -44,20 +44,6 @@ function install_compute() {
     echo "OpenStack services installed on: $win_host"
 }
 
-function get_win_hotfixes_log() {
-    local win_host=$1
-    local log_file=$2
-    echo "Getting hotfixes details for host: $win_host"
-    get_win_hotfixes $win_host > $log_file
-}
-
-function get_win_system_info_log() {
-    local win_host=$1
-    local log_file=$2
-    echo "Getting system info for host: $win_host"
-    get_win_system_info $win_host > $log_file
-}
-
 function restart_compute_services() {
     local win_host=$1
     local neutron_service=$2
@@ -70,21 +56,6 @@ function stop_compute_services() {
     local neutron_service=$2
     echo "Stopping OpenStack services on: $win_host"
     run_wsman_ps $win_host "cd $repo_dir\\windows; .\\stopcomputeservices.ps1 -NeutronAgent $neutron_service"
-}
-
-function get_win_host_log_files() {
-    local host_name=$1
-    local local_dir=$2
-    get_win_files $host_name "$host_logs_dir" $local_dir
-}
-
-function get_win_host_config_files() {
-    local host_name=$1
-    local local_dir=$2
-    mkdir -p $local_dir
-
-    local host_config_dir_esc=`run_wsman_ps $host_name "cd $repo_dir\\windows; Import-Module .\ShortPath.psm1; Get-ShortPathName \\\\\"$host_config_dir\\\\\"" 2>&1`
-    get_win_files $host_name "${host_config_dir_esc#*:}" $local_dir
 }
 
 function get_config_tests() {
@@ -164,25 +135,6 @@ config=yaml.load(sys.stdin);
 print config[\"$test_name\"].get('use_ovs', False)"
 }
 
-function check_host_services_count() {
-    local expected_hosts_count=$1
-    local neutron_agent_type=$2
-
-    local nova_compute_hosts=`get_nova_service_hosts | wc -l`
-    if [ $expected_hosts_count -ne $nova_compute_hosts ]; then
-        echo "Current active nova-compute services:  $nova_compute_hosts expected: ${#host_names[@]}"
-        return 1
-    fi
-
-    local hyperv_agent_hosts=`get_neutron_agent_hosts "$neutron_agent_type" | wc -l`
-    # we error out only if we have less than the expected number of agent hosts. In case we use
-    # ovs neutron agent, we will have an extra agent on the controller.
-    if [ $expected_hosts_count -gt $hyperv_agent_hosts ]; then
-        echo "Current active neutron Hyper-V agents:  $hyperv_agent_hosts expected: ${#host_names[@]}"
-        return 1
-    fi
-}
-
 function copy_devstack_config_files() {
     local dest_dir=$1
 
@@ -220,19 +172,6 @@ function copy_tempest_results() {
 
 }
 
-function check_host_time() {
-    local host=$1
-    host_time=`get_win_time $host`
-    local_time=`date +%s`
-
-    local delta=$((local_time - host_time))
-    if [ ${delta#-} -gt 300 ];
-    then
-        echo "Host $host time offset compared to this host is too high: $delta"
-        return 1
-    fi
-}
-
 function setup_compute_host() {
     local test_name=$1
     local host_name=$2
@@ -261,15 +200,6 @@ function setup_compute_host() {
              done
         done
     done
-}
-
-function enable_venv() {
-    local venvdir=$1
-
-    if [ ! -d "$venvdir" ]; then
-        virtualenv $venvdir
-    fi
-    source "$venvdir/bin/activate"
 }
 
 msi_url=$1
@@ -327,28 +257,6 @@ tcp_ports=(5672 5000 9292 9696 35357)
 ssh_key="$HOME/.ssh/container_rsa"
 
 test_reports_base_dir=`realpath $BASEDIR`/reports
-
-function start_container() {
-#import container from archive. if it does not exist, create template.
-     local container_name=$1
-     local container_templates_path="/$HOME/devstack_lxc_containers"
-     local container_template_name="$container_name-template.tar.gz"
-     local template_file="$container_templates_path/$container_template_name"
-     local container_config_file_path="$container_templates_path/devstack_lxc.conf"
-     local lxc_dir="/var/lib/lxc"
-
-     if [ ! -f $template_file ];
-     then
-   	echo "No container template found for $container_name. Creating one."
-        create_container_template $container_name $container_config_file_path $CONTAINER_USER $CONTAINER_PASSWORD $ssh_key        
-     fi
-
-     sudo mkdir -p "$lxc_dir/$container_name"
-     sudo tar -xvf $template_file -C "$lxc_dir/$container_name"
-     sudo lxc-start -n $container_name -d
-     sleep 10
-}
-
 
 #make sure container doesn't already exist
 destroy_container $DEVSTACK_CONTAINER_NAME
@@ -574,7 +482,7 @@ do
     do
         exec_with_retry 5 10 stop_compute_services $host_name $neutron_service
         firewall_manage_ports $host_name del enable ${tcp_ports[@]}
-        exec_with_retry 15 2 get_win_host_config_files $host_name "$test_config_dir/$host_name"
+        exec_with_retry 15 2 get_win_host_config_files $host_name $host_config_dir "$test_config_dir/$host_name"
     done
 
     pids=()
@@ -600,7 +508,7 @@ do
 
     for host_name in ${host_names[@]};
     do
-        exec_with_retry 15 2 get_win_host_log_files $host_name "$test_logs_dir/$host_name"
+        exec_with_retry 15 2 get_win_host_log_files $host_name $host_logs_dir "$test_logs_dir/$host_name"
     done
 
     echo "Removing symlinks from logs"
