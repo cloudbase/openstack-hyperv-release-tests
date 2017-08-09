@@ -175,6 +175,7 @@ function InstallComputeMSI($MSIPath, $DevstackHost, $Password)
     "RPCBACKENDHOST=$DevstackHost " +
     "RPCBACKENDUSER=stackrabbit " +
     "RPCBACKENDPASSWORD=$Password " +
+    "RPCTRANSPORTURL=rabbit://stackrabbit:$Password@$DevstackHost`:5672/ " +
 
     "INSTANCESPATH=C:\OpenStack\Instances " +
     "LOGDIR=C:\OpenStack\Log " +
