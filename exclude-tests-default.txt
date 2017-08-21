@@ -14,3 +14,6 @@ tempest.scenario.test_network_v6.TestGettingAddress
 
 # exclude tests due to bug: https://bugs.launchpad.net/tempest/+bug/1582730
 tempest.api.compute.volumes.test_attach_volume.AttachVolumeShelveTestJSON
+
+# server diagnostics are not currently supported.
+tempest.api.compute.admin.test_server_diagnostics
