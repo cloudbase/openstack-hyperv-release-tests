@@ -17,6 +17,50 @@ HyperV2016_VHDX:
           debug: true
         SECURITYGROUP:
           enable_security_group: true
+HyperV2016_VHDX_CINDER_ISCSI:
+  test_suite: default
+  include_default: false
+  cinder_host: WIN12R2SHARES
+  cinder_driver: iscsiDriver
+  devstack:
+    live_migration: false
+    allow_resize_to_same_host: true
+    #image_url: https://cloudbase.it/downloads/cirros-0.3.4-x86_64.vhdx.gz
+    image_url: https://cloudbase.it/downloads/cirros-0.3.4-master-142e811-x86_64.vhdx.gz
+    heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhdx.gz
+  hosts:
+    NUCHV1601:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: true
+          debug: true
+      neutron_hyperv_agent.conf:
+        DEFAULT:
+          debug: true
+        SECURITYGROUP:
+          enable_security_group: true
+HyperV2016_VHDX_CINDER_SMB:
+  test_suite: default
+  include_default: false
+  cinder_host: WIN12R2SHARES
+  cinder_driver: smbDriver
+  devstack:
+    live_migration: false
+    allow_resize_to_same_host: true
+    #image_url: https://cloudbase.it/downloads/cirros-0.3.4-x86_64.vhdx.gz
+    image_url: https://cloudbase.it/downloads/cirros-0.3.4-master-142e811-x86_64.vhdx.gz
+    heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhdx.gz
+  hosts:
+    NUCHV1601:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: true
+          debug: true
+      neutron_hyperv_agent.conf:
+        DEFAULT:
+          debug: true
+        SECURITYGROUP:
+          enable_security_group: true
 HyperV2016_NIC_hotplug:
   test_suite: nichotplug
   include_default: false
@@ -131,6 +175,66 @@ HyperV2012r2MultipleCSVS_NEWEST_VHDX:
           enable_security_group: true
 HyperV2012r2_VHDX:
   test_suite: default
+  devstack:
+    live_migration: true
+    allow_resize_to_same_host: false
+    image_url: https://cloudbase.it/downloads/cirros-0.3.4-x86_64.vhdx.gz
+    heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhdx.gz
+  hosts:
+    NUCHV12R201:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: false
+          debug: true
+      neutron_hyperv_agent.conf:
+        DEFAULT:
+          debug: true
+        SECURITYGROUP:
+          enable_security_group: true
+    NUCHV12R202:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: false
+          debug: true
+      neutron_hyperv_agent.conf:
+        DEFAULT:
+          debug: true
+        SECURITYGROUP:
+          enable_security_group: true
+HyperV2012r2_VHDX_CINDER_ISCSI:
+  test_suite: default
+  cinder_host: WIN12R2SHARES
+  cinder_driver: iscsiDriver
+  devstack:
+    live_migration: true
+    allow_resize_to_same_host: false
+    image_url: https://cloudbase.it/downloads/cirros-0.3.4-x86_64.vhdx.gz
+    heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhdx.gz
+  hosts:
+    NUCHV12R201:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: false
+          debug: true
+      neutron_hyperv_agent.conf:
+        DEFAULT:
+          debug: true
+        SECURITYGROUP:
+          enable_security_group: true
+    NUCHV12R202:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: false
+          debug: true
+      neutron_hyperv_agent.conf:
+        DEFAULT:
+          debug: true
+        SECURITYGROUP:
+          enable_security_group: true
+HyperV2012r2_VHDX_CINDER_SMB:
+  test_suite: default
+  cinder_host: WIN12R2SHARES
+  cinder_driver: smbDriver
   devstack:
     live_migration: true
     allow_resize_to_same_host: false
@@ -311,6 +415,42 @@ HyperV2012r2_dynamic_memory:
           debug: true
 HyperV2012_VHDX:
   test_suite: default
+  devstack:
+    live_migration: false
+    allow_resize_to_same_host: true
+    image_url: https://cloudbase.it/downloads/cirros-0.3.4-x86_64.vhdx.gz
+    heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhdx.gz
+  hosts:
+    NUCHV1201:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: true
+          debug: true
+      neutron_hyperv_agent.conf:
+        DEFAULT:
+          debug: true
+HyperV2012_VHDX_CINDER_ISCSI:
+  test_suite: default
+  cinder_host: WIN12R2SHARES
+  cinder_driver: iscsiDriver
+  devstack:
+    live_migration: false
+    allow_resize_to_same_host: true
+    image_url: https://cloudbase.it/downloads/cirros-0.3.4-x86_64.vhdx.gz
+    heat_image_url: https://www.cloudbase.it/downloads/Fedora-x86_64-20-20140618-sda.vhdx.gz
+  hosts:
+    NUCHV1201:
+      nova.conf:
+        DEFAULT:
+          allow_resize_to_same_host: true
+          debug: true
+      neutron_hyperv_agent.conf:
+        DEFAULT:
+          debug: true
+HyperV2012_VHDX_CINDER_SMB:
+  test_suite: default
+  cinder_host: WIN12R2SHARES
+  cinder_driver: smbDriver
   devstack:
     live_migration: false
     allow_resize_to_same_host: true

@@ -176,6 +176,17 @@ function get_neutron_agent_hosts() {
     neutron agent-list -c agent_type -c host -c alive | awk 'BEGIN { FS = "[ ]*\\|[ ]*" }; {if (NR > 3 && $2 == agent_type && $4 == ":-)"){ print $3 }}' agent_type="$agent_type"
 }
 
+function check_cinder_service_up() {
+    local host_name=$1
+    local service_name=${2-"cinder-volume"}
+    cinder service-list | awk '{if ($6 ~ $(host_name) && $2 == service_name && $10 == "up" && $8 == "enabled") {f=1}} END {exit !f}' host_name=$host_name service_name=$service_name
+}
+
+function get_cinder_service_hosts() {
+    local service_name=${1-"cinder-volume"}
+    cinder service-list | awk '{if ($2 == service_name && $10 == "up" && $8 == "enabled") {print $4}}' service_name=cinder-volume
+}
+
 function check_host_services_count() {
     local expected_hosts_count=$1
     local neutron_agent_type=${2:-"HyperV agent"}
@@ -191,6 +202,13 @@ function check_host_services_count() {
     # ovs neutron agent, we will have an extra agent on the controller.
     if [ $expected_hosts_count -gt $hyperv_agent_hosts ]; then
         echo "Current active neutron Hyper-V agents: $hyperv_agent_hosts expected: $expected_hosts_count"
+        return 1
+    fi
+
+    # we should only use one cinder-volume service at a time for testing.
+    local cinder_volume_services=`get_cinder_service_hosts | wc -l`
+    if [ $cinder_volume_services -gt 1 ]; then
+        echo "Current active cinder-volume services running: $cinder_volume_services"
         return 1
     fi
 }
